@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
+/** Next.js config for Budget app. Add options here if needed (e.g. redirects, env). */
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
