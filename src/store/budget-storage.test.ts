@@ -24,8 +24,10 @@ import {
   SESSION_DECRYPTED_KEY_PREFIX,
   BUDGET_ID_STORAGE_KEY,
   SESSION_KEY_STORAGE_KEY,
+  setLastSyncedFingerprint,
   setNewerVersionCooldown,
 } from "@/lib/constants";
+import { getContentFingerprint } from "@/lib/budget-persistence/serialize";
 
 const TEST_BUDGET_ID = "test-storage-budget-id";
 const SALT = new Uint8Array(16);
@@ -145,6 +147,68 @@ describe("budget storage", () => {
           `${SESSION_DECRYPTED_KEY_PREFIX}${TEST_BUDGET_ID}`,
         ),
       ).toBeNull();
+    });
+
+    it("skips sync when content fingerprint matches last synced", async () => {
+      const key = await getTestKey();
+      useSessionStore.getState().setKey(key);
+      const state = {
+        budgetId: TEST_BUDGET_ID,
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        incomeSources: [{ id: "src-1", name: "Job", description: "" }],
+        incomeEvents: [],
+        expenseDestinations: [],
+        expenseEvents: [],
+      };
+      useBudgetStore.setState(state);
+      await new Promise((r) => setTimeout(r, 0));
+      const fingerprint = getContentFingerprint(
+        useBudgetStore.getState() as Parameters<
+          typeof getContentFingerprint
+        >[0],
+      );
+      setLastSyncedFingerprint(TEST_BUDGET_ID, fingerprint);
+
+      const fetchMock = vi.mocked(fetch);
+      fetchMock.mockClear();
+
+      await saveBudget();
+
+      const syncCalls = fetchMock.mock.calls.filter(
+        (call) =>
+          String(call[0]).includes("/api/sync") &&
+          (call[1] as { method?: string })?.method === "POST",
+      );
+      expect(syncCalls).toHaveLength(0);
+
+      expect(
+        localStorage.getItem(
+          `${ENCRYPTED_STORAGE_KEY_PREFIX}${TEST_BUDGET_ID}`,
+        ),
+      ).toBeTruthy();
+    });
+
+    it("calls sync when content fingerprint differs from last synced", async () => {
+      const key = await getTestKey();
+      useSessionStore.getState().setKey(key);
+      useBudgetStore.setState((s) => ({
+        ...s,
+        budgetId: TEST_BUDGET_ID,
+        incomeSources: [{ id: "src-1", name: "Job", description: "" }],
+      }));
+
+      const fetchMock = vi.mocked(fetch);
+      fetchMock.mockClear();
+
+      await saveBudget();
+
+      const syncCalls = fetchMock.mock.calls.filter(
+        (call) =>
+          String(call[0]).includes("/api/sync") &&
+          (call[1] as { method?: string })?.method === "POST",
+      );
+      expect(syncCalls.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -373,6 +437,48 @@ describe("budget storage", () => {
         ),
       ).toBeTruthy();
       expect(localStorage.getItem(BUDGET_ID_STORAGE_KEY)).toBe(TEST_BUDGET_ID);
+    });
+
+    it("sets last synced fingerprint so subsequent saveBudget skips redundant sync", async () => {
+      setStoredSalt(SALT);
+      const key = await getTestKey();
+      const budgetJson = JSON.stringify({
+        budgetId: TEST_BUDGET_ID,
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        incomeSources: [
+          { id: "remote-src", name: "Remote Job", description: "" },
+        ],
+        incomeEvents: [],
+        expenseDestinations: [],
+        expenseEvents: [],
+      });
+      const encrypted = await encrypt(budgetJson, key);
+      const portablePayload = prepareSyncPayload(encrypted);
+
+      vi.mocked(fetch)
+        .mockImplementationOnce(() =>
+          Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve(portablePayload),
+          } as Response),
+        )
+        .mockImplementation(() => Promise.resolve({ ok: true } as Response));
+
+      await loadRemoteVersionAndApply(TEST_BUDGET_ID, "test-passphrase");
+
+      vi.mocked(fetch).mockClear();
+
+      await saveBudget();
+
+      const syncPostCalls = vi
+        .mocked(fetch)
+        .mock.calls.filter(
+          (call) =>
+            String(call[0]).includes("/api/sync") &&
+            (call[1] as { method?: string })?.method === "POST",
+        );
+      expect(syncPostCalls).toHaveLength(0);
     });
   });
 });

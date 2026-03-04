@@ -37,7 +37,7 @@ The server never sees the passphrase or plaintext. Only encrypted data is stored
 
 ### Background sync polling
 
-While the budget page is open, the app polls for newer versions every 3 minutes. Polling pauses when the tab is hidden or after 10 minutes of inactivity, and resumes when you become active again.
+While the budget page is open and the tab is active, the app polls for newer versions: starting at 1 second, then doubling each poll (exponential backoff) up to 30 seconds. Polling stops when the tab is hidden or after 10 minutes of inactivity, and resumes from 1 second when you become active again.
 
 ### Flow
 
@@ -88,4 +88,4 @@ Deploy via the [Vercel Platform](https://vercel.com/new). See [Next.js deploymen
 
 ## License
 
-Sunrise Budget is proprietary software. It is not open source. You may self-host and run this application for your own use at no charge. A hosted version is available at [sunrisebudget.com](https://sunrisebudget.com) if you prefer not to run it yourself.
+Sunrise Budget is open source. You are free to copy, modify, and run it yourself at no charge. If you prefer a managed, hosted version, you can use it at [sunrisebudget.com](https://sunrisebudget.com).

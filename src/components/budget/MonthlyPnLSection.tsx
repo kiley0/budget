@@ -507,7 +507,7 @@ export function MonthlyPnLSection({
                     </h4>
                     <div className="mt-1 min-h-0 flex-1">
                       {incomeEventsForMonth.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">—</p>
+                        <p className="text-sm text-muted-foreground">–</p>
                       ) : (
                         <ul className="list-none space-y-1">
                           {incomeEventsForMonth.map((event) => (
@@ -612,7 +612,7 @@ export function MonthlyPnLSection({
                     </h4>
                     <div className="mt-1 min-h-0 flex-1">
                       {expenseEventsExcludingDebt.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">—</p>
+                        <p className="text-sm text-muted-foreground">–</p>
                       ) : (
                         <ul className="list-none space-y-1">
                           {expenseEventsExcludingDebt.map((event) => (
@@ -831,7 +831,7 @@ export function MonthlyPnLSection({
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              Enter actuals —{" "}
+              Enter actuals:{" "}
               {actualsDialogSlot
                 ? formatMonthLabel(actualsDialogSlot.slot)
                 : ""}
@@ -841,7 +841,7 @@ export function MonthlyPnLSection({
             <div className="space-y-5">
               <div>
                 <h4 className="text-sm font-medium text-foreground mb-2">
-                  Income — enter actual amount for each
+                  Income: enter actual amount for each
                 </h4>
                 {(() => {
                   const incomeEvents = sortEventsByDayThenAmount(
@@ -888,7 +888,7 @@ export function MonthlyPnLSection({
               <Separator />
               <div>
                 <h4 className="text-sm font-medium text-foreground mb-2">
-                  Expenses — enter actual amount for each
+                  Expenses: enter actual amount for each
                 </h4>
                 {(() => {
                   const expenseEvents = sortEventsByDayThenAmount(

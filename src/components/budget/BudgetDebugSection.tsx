@@ -33,7 +33,7 @@ export function BudgetDebugSection({
             type="button"
             className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            Debug — localStorage sync
+            Debug: localStorage sync
             <ChevronDownIcon
               className={`size-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
               aria-hidden

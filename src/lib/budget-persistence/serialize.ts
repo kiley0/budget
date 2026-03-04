@@ -22,3 +22,22 @@ export function serializeBudgetForPersistence(
   };
   return JSON.stringify(toSave);
 }
+
+/**
+ * Content fingerprint for change detection: state without updatedAt, keys sorted for determinism.
+ * Used to skip sync when the budget content hasn't changed.
+ */
+export function getContentFingerprint(state: SerializableBudgetState): string {
+  const rest = { ...(state as Record<string, unknown>) };
+  delete rest.updatedAt;
+  const sorted = Object.keys(rest)
+    .sort()
+    .reduce(
+      (acc, k) => {
+        acc[k] = rest[k];
+        return acc;
+      },
+      {} as Record<string, unknown>,
+    );
+  return JSON.stringify(sorted);
+}

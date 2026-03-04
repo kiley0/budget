@@ -8,10 +8,11 @@ import {
 } from "@/store/budget";
 import { isNewerVersionCooldownActive } from "@/lib/constants";
 
-const POLL_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
-const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const INITIAL_POLL_DELAY_MS = 1000; // 1 second
+const MAX_POLL_DELAY_MS = 30 * 1000; // 30 seconds (exponential backoff cap)
+const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes; stop polling when inactive
 
-/** Events that count as user activity for the inactivity timer. */
+/** Events that count as user activity. Polling resumes from 1s when user becomes active again. */
 const ACTIVITY_EVENTS = [
   "mousedown",
   "keydown",
@@ -20,8 +21,9 @@ const ACTIVITY_EVENTS = [
 ] as const;
 
 /**
- * Periodically polls Vercel Blob for a newer budget version. Stops polling after
- * INACTIVITY_TIMEOUT_MS of no user activity and resumes when the user is active again.
+ * Polls Vercel Blob for a newer budget version only when the tab is active.
+ * Starts at 1s, doubles each poll (exponential backoff) up to 30s, and stops
+ * if the user is inactive for 10 minutes. Resumes from 1s when the user is active again.
  * Pass enabled: false when the newer-version dialog is already open.
  */
 export function useSyncVersionPolling(options: {
@@ -40,60 +42,87 @@ export function useSyncVersionPolling(options: {
     const bid: string = budgetId;
 
     let lastActivity = Date.now();
-    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let currentDelay = INITIAL_POLL_DELAY_MS;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    function tick() {
+    function scheduleNext() {
+      if (timeoutId) return;
       const tabHidden = document.visibilityState === "hidden";
       const inactive = Date.now() - lastActivity > INACTIVITY_TIMEOUT_MS;
-      if (tabHidden || inactive) {
-        if (intervalId) {
-          clearInterval(intervalId);
-          intervalId = null;
-        }
-        return;
-      }
+      if (tabHidden || inactive) return;
 
-      if (isNewerVersionCooldownActive(bid)) return;
+      timeoutId = setTimeout(() => {
+        timeoutId = null;
 
-      void fetchSyncMetadata(bid).then((meta) => {
-        if (!meta?.updatedAt) return;
-        if (isNewerVersionCooldownActive(bid)) return;
-        const state = useBudgetStore.getState();
-        if (state.budgetId !== bid) return;
-        if (isRemoteNewer(meta.updatedAt, state.updatedAt)) {
-          onNewerVersionRef.current();
+        const nowHidden = document.visibilityState === "hidden";
+        const nowInactive = Date.now() - lastActivity > INACTIVITY_TIMEOUT_MS;
+        if (nowHidden || nowInactive) return;
+
+        if (isNewerVersionCooldownActive(bid)) {
+          scheduleNext();
+          return;
         }
-      });
+
+        void fetchSyncMetadata(bid)
+          .then((meta) => {
+            if (!meta?.updatedAt) {
+              currentDelay = Math.min(currentDelay * 2, MAX_POLL_DELAY_MS);
+              scheduleNext();
+              return;
+            }
+            if (isNewerVersionCooldownActive(bid)) {
+              scheduleNext();
+              return;
+            }
+            const state = useBudgetStore.getState();
+            if (state.budgetId !== bid) {
+              scheduleNext();
+              return;
+            }
+            if (isRemoteNewer(meta.updatedAt, state.updatedAt)) {
+              onNewerVersionRef.current();
+              return; // Dialog opens; enabled becomes false, effect cleans up
+            }
+            currentDelay = Math.min(currentDelay * 2, MAX_POLL_DELAY_MS);
+            scheduleNext();
+          })
+          .catch(() => {
+            currentDelay = Math.min(currentDelay * 2, MAX_POLL_DELAY_MS);
+            scheduleNext();
+          });
+      }, currentDelay);
     }
 
     function onActivity() {
       lastActivity = Date.now();
-      if (!intervalId && document.visibilityState !== "hidden") {
-        intervalId = setInterval(tick, POLL_INTERVAL_MS);
+      if (document.visibilityState === "hidden") return;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
       }
+      currentDelay = INITIAL_POLL_DELAY_MS;
+      scheduleNext();
     }
 
     function onVisibilityChange() {
       if (document.visibilityState === "visible") {
         lastActivity = Date.now();
-        if (!intervalId) {
-          intervalId = setInterval(tick, POLL_INTERVAL_MS);
-        }
-      } else if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
+        currentDelay = INITIAL_POLL_DELAY_MS;
+        scheduleNext();
+      } else if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
       }
     }
 
-    intervalId =
-      document.visibilityState !== "hidden"
-        ? setInterval(tick, POLL_INTERVAL_MS)
-        : null;
+    if (document.visibilityState === "visible") {
+      scheduleNext();
+    }
     ACTIVITY_EVENTS.forEach((ev) => window.addEventListener(ev, onActivity));
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (timeoutId) clearTimeout(timeoutId);
       ACTIVITY_EVENTS.forEach((ev) =>
         window.removeEventListener(ev, onActivity),
       );

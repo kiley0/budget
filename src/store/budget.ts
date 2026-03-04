@@ -13,6 +13,7 @@ import {
   persistToStoresInOrder,
   createDefaultPersistenceAdapters,
 } from "@/lib/budget-persistence";
+import { getContentFingerprint } from "@/lib/budget-persistence/serialize";
 import { migrateBudget } from "@/lib/budget-migrations";
 import { debounceLeadingTrailing } from "@/lib/debounce";
 import {
@@ -21,6 +22,8 @@ import {
   BUDGET_ID_STORAGE_KEY,
   getBudgetMetadata,
   setBudgetMetadata,
+  getLastSyncedFingerprint,
+  setLastSyncedFingerprint,
   isNewerVersionCooldownActive,
 } from "@/lib/constants";
 import { toast } from "sonner";
@@ -570,6 +573,8 @@ export async function loadRemoteVersionAndApply(
     const parsed = JSON.parse(decrypted) as unknown;
     const migrated = migrateBudget(parsed, budgetId);
     useBudgetStore.setState(migrated);
+    // Content matches remote; mark as synced so saveBudget skips redundant sync
+    setLastSyncedFingerprint(budgetId, getContentFingerprint(migrated));
     await saveBudget();
     localStorage.setItem(BUDGET_ID_STORAGE_KEY, budgetId);
     const now = new Date().toISOString();
@@ -584,7 +589,7 @@ export async function loadRemoteVersionAndApply(
   }
 }
 
-/** Save current budget in order: sessionStorage (decrypted), localStorage (encrypted), Vercel Blob. */
+/** Save current budget in order: sessionStorage (decrypted), localStorage (encrypted), Vercel Blob. Skips sync when content unchanged. */
 export async function saveBudget(): Promise<void> {
   const key = await getKey();
   if (!key) return;
@@ -593,7 +598,17 @@ export async function saveBudget(): Promise<void> {
   if (!state.budgetId) return;
 
   const payloads = await serializeAndPreparePayloads(state, key);
-  await persistToStoresInOrder(state.budgetId, payloads, defaultAdapters, key);
+  const fingerprint = getContentFingerprint(state);
+  const lastSynced = getLastSyncedFingerprint(state.budgetId);
+  const skipSync = lastSynced !== null && lastSynced === fingerprint;
+
+  await persistToStoresInOrder(state.budgetId, payloads, defaultAdapters, key, {
+    skipSync,
+  });
+
+  if (!skipSync) {
+    setLastSyncedFingerprint(state.budgetId, fingerprint);
+  }
 }
 
 // Persist whenever state changes. First change saves immediately; rapid edits coalesce into one save after 400ms.

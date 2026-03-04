@@ -43,7 +43,17 @@ export default function RootLayout({
             </div>
             <footer className="px-12 py-4 text-center text-sm text-muted-foreground sm:px-16 lg:px-24">
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-                <span>Developed by Kiley D · © {new Date().getFullYear()}</span>
+                <span>© {new Date().getFullYear()} Sunrise Budget</span>
+                <span aria-hidden>·</span>
+                <Button
+                  variant="link"
+                  asChild
+                  className="h-auto p-0 text-muted-foreground hover:text-foreground"
+                >
+                  <Link href="https://github.com/kiley0/budget" target="_blank" rel="noopener noreferrer">
+                    View on GitHub
+                  </Link>
+                </Button>
                 <span aria-hidden>·</span>
                 <Button
                   variant="link"

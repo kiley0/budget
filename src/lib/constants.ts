@@ -69,6 +69,25 @@ export function setPreferences(next: BudgetPreferences): void {
   localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(next));
 }
 
+/** Key for last-synced content fingerprint per budget. Used to skip sync when content unchanged. budget_last_synced_fingerprint_${budgetId}. */
+export const LAST_SYNCED_FINGERPRINT_PREFIX = "budget_last_synced_fingerprint_";
+
+export function getLastSyncedFingerprint(budgetId: string): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(`${LAST_SYNCED_FINGERPRINT_PREFIX}${budgetId}`);
+}
+
+export function setLastSyncedFingerprint(
+  budgetId: string,
+  fingerprint: string,
+): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(
+    `${LAST_SYNCED_FINGERPRINT_PREFIX}${budgetId}`,
+    fingerprint,
+  );
+}
+
 /** Key for unencrypted budget metadata per budget. Stored as budget_meta_${budgetId} (JSON). */
 export const BUDGET_META_KEY_PREFIX = "budget_meta_";
 
@@ -165,6 +184,7 @@ export function clearAllBudgetsFromStorage(): void {
     localStorage.removeItem(`${ENCRYPTED_STORAGE_KEY_PREFIX}${id}`);
     localStorage.removeItem(`${BUDGET_META_KEY_PREFIX}${id}`);
     localStorage.removeItem(`${LEGACY_LAST_ACCESSED_PREFIX}${id}`);
+    localStorage.removeItem(`${LAST_SYNCED_FINGERPRINT_PREFIX}${id}`);
   }
   localStorage.removeItem(BUDGET_ID_STORAGE_KEY);
 }
@@ -196,7 +216,7 @@ export const EXPENSE_CATEGORIES = [
 export type ExpenseCategoryValue = (typeof EXPENSE_CATEGORIES)[number]["value"];
 
 export function getExpenseCategoryLabel(value: string | undefined): string {
-  if (!value) return "—";
+  if (!value) return "–";
   return EXPENSE_CATEGORIES.find((c) => c.value === value)?.label ?? value;
 }
 
@@ -215,7 +235,7 @@ export const INCOME_TYPES = [
 export type IncomeTypeValue = (typeof INCOME_TYPES)[number]["value"];
 
 export function getIncomeTypeLabel(value: string | undefined): string {
-  if (!value) return "—";
+  if (!value) return "–";
   return INCOME_TYPES.find((t) => t.value === value)?.label ?? value;
 }
 

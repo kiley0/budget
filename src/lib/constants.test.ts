@@ -9,6 +9,9 @@ import {
   BUDGET_META_KEY_PREFIX,
   SELECT_NONE,
   getStoredBudgetIds,
+  LAST_SYNCED_FINGERPRINT_PREFIX,
+  getLastSyncedFingerprint,
+  setLastSyncedFingerprint,
   clearAllBudgetsFromStorage,
   getBudgetMetadata,
   parseMetadataFromExport,
@@ -18,11 +21,11 @@ import {
 } from "./constants";
 
 describe("getExpenseCategoryLabel", () => {
-  it("returns — for undefined", () => {
-    expect(getExpenseCategoryLabel(undefined)).toBe("—");
+  it("returns – for undefined", () => {
+    expect(getExpenseCategoryLabel(undefined)).toBe("–");
   });
-  it("returns — for empty string", () => {
-    expect(getExpenseCategoryLabel("")).toBe("—");
+  it("returns – for empty string", () => {
+    expect(getExpenseCategoryLabel("")).toBe("–");
   });
   it("returns label for known value", () => {
     expect(getExpenseCategoryLabel("rent")).toBe("Rent / Mortgage");
@@ -35,8 +38,8 @@ describe("getExpenseCategoryLabel", () => {
 });
 
 describe("getIncomeTypeLabel", () => {
-  it("returns — for undefined", () => {
-    expect(getIncomeTypeLabel(undefined)).toBe("—");
+  it("returns – for undefined", () => {
+    expect(getIncomeTypeLabel(undefined)).toBe("–");
   });
   it("returns label for known value", () => {
     expect(getIncomeTypeLabel("paycheck")).toBe("Paycheck");
@@ -137,6 +140,10 @@ describe("clearAllBudgetsFromStorage", () => {
     mockLocalStorage.setItem(`${ENCRYPTED_STORAGE_KEY_PREFIX}b1`, "enc");
     mockLocalStorage.setItem(`${BUDGET_META_KEY_PREFIX}b1`, "{}");
     mockLocalStorage.setItem("budget_last_accessed_b1", "x");
+    mockLocalStorage.setItem(
+      `${LAST_SYNCED_FINGERPRINT_PREFIX}b1`,
+      "fingerprint",
+    );
     mockLocalStorage.setItem(BUDGET_ID_STORAGE_KEY, "b1");
     clearAllBudgetsFromStorage();
     expect(
@@ -144,7 +151,64 @@ describe("clearAllBudgetsFromStorage", () => {
     ).toBeNull();
     expect(mockLocalStorage.getItem(`${BUDGET_META_KEY_PREFIX}b1`)).toBeNull();
     expect(mockLocalStorage.getItem("budget_last_accessed_b1")).toBeNull();
+    expect(
+      mockLocalStorage.getItem(`${LAST_SYNCED_FINGERPRINT_PREFIX}b1`),
+    ).toBeNull();
     expect(mockLocalStorage.getItem(BUDGET_ID_STORAGE_KEY)).toBeNull();
+  });
+});
+
+describe("getLastSyncedFingerprint / setLastSyncedFingerprint", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns null when window is undefined", () => {
+    vi.stubGlobal("window", undefined);
+    vi.stubGlobal("localStorage", undefined);
+    expect(getLastSyncedFingerprint("bid-1")).toBeNull();
+  });
+
+  it("returns null when no fingerprint stored", () => {
+    const store: Record<string, string> = {};
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (k: string) => store[k] ?? null,
+        setItem: () => {},
+        removeItem: () => {},
+      },
+    });
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store[k] ?? null,
+      setItem: (k: string, v: string) => {
+        store[k] = v;
+      },
+      removeItem: () => {},
+    });
+    expect(getLastSyncedFingerprint("bid-1")).toBeNull();
+  });
+
+  it("round-trips fingerprint when window is defined", () => {
+    const store: Record<string, string> = {};
+    const mockLocalStorage = {
+      getItem: (k: string) => store[k] ?? null,
+      setItem: (k: string, v: string) => {
+        store[k] = v;
+      },
+      removeItem: (k: string) => {
+        delete store[k];
+      },
+    };
+    vi.stubGlobal("window", { localStorage: mockLocalStorage });
+    vi.stubGlobal("localStorage", mockLocalStorage);
+
+    setLastSyncedFingerprint("bid-1", "fp-abc");
+    expect(getLastSyncedFingerprint("bid-1")).toBe("fp-abc");
+    expect(getLastSyncedFingerprint("bid-2")).toBeNull();
+
+    setLastSyncedFingerprint("bid-2", "fp-xyz");
+    expect(getLastSyncedFingerprint("bid-1")).toBe("fp-abc");
+    expect(getLastSyncedFingerprint("bid-2")).toBe("fp-xyz");
   });
 });
 

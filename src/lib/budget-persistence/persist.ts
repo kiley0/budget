@@ -37,6 +37,11 @@ export interface PersistenceAdapters {
   ): Promise<void>;
 }
 
+export interface PersistOptions {
+  /** When true, skip the sync write (Vercel Blob). Use when content unchanged. */
+  skipSync?: boolean;
+}
+
 /**
  * Write budget payloads to all stores in order: session → local → sync.
  * Fully testable with mocked adapters.
@@ -46,10 +51,17 @@ export async function persistToStoresInOrder(
   payloads: PersistPayloads,
   adapters: PersistenceAdapters,
   key: CryptoKey,
+  options?: PersistOptions,
 ): Promise<void> {
   await adapters.writeSession(budgetId, payloads.decrypted, key);
   adapters.writeLocal(budgetId, payloads.encrypted);
-  await adapters.writeSync(budgetId, payloads.syncPayload, payloads.updatedAt);
+  if (!options?.skipSync) {
+    await adapters.writeSync(
+      budgetId,
+      payloads.syncPayload,
+      payloads.updatedAt,
+    );
+  }
 }
 
 /**

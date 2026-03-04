@@ -15,7 +15,7 @@ describe("YearlySummarySection", () => {
       />,
     );
     expect(
-      screen.getByText(/Income and Expenses Summary — Jan–Dec 2024/),
+      screen.getByText(/Income and Expenses Summary: Jan–Dec 2024/),
     ).toBeInTheDocument();
   });
 

@@ -203,6 +203,29 @@ export default function Home() {
             Your data is protected with end-to-end encryption. Built with
             privacy, accessibility, keyboard hotkeys, and speed in mind.
           </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 rounded-lg bg-primary/5 px-4 py-3 text-sm font-medium text-foreground">
+            <span className="flex items-center gap-2">
+              <span
+                className="size-2 rounded-full bg-emerald-500"
+                aria-hidden
+              />
+              No account required: just a passphrase
+            </span>
+            <span className="flex items-center gap-2">
+              <span
+                className="size-2 rounded-full bg-emerald-500"
+                aria-hidden
+              />
+              Absolutely no tracking
+            </span>
+            <span className="flex items-center gap-2">
+              <span
+                className="size-2 rounded-full bg-emerald-500"
+                aria-hidden
+              />
+              Open source — self-host or use sunrisebudget.com
+            </span>
+          </div>
           <div className="mt-10">
             <Button asChild size="lg">
               <Link href="/get-started">Get started</Link>
@@ -263,7 +286,7 @@ export default function Home() {
               </h3>
               <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
                 Annual income, expenses, and net totals. Not a transaction
-                tracker—just a simple way to plan your near-term budget.
+                tracker, just a simple way to plan your near-term budget.
               </p>
             </div>
           </div>
@@ -276,7 +299,7 @@ export default function Home() {
           <Card className="bg-muted/30 px-4 py-4">
             <CardHeader className="px-0 pb-0">
               <CardTitle className="text-lg">
-                Yearly income and expenses summary — {new Date().getFullYear()}
+                Yearly income and expenses summary: {new Date().getFullYear()}
               </CardTitle>
               <CardDescription>
                 Totals for the year based on expected income (after tax) and

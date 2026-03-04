@@ -55,6 +55,30 @@ describe("persistToStoresInOrder", () => {
     );
   });
 
+  it("skips sync when skipSync is true", async () => {
+    const adapters = {
+      writeSession: vi.fn().mockResolvedValue(undefined),
+      writeLocal: vi.fn(),
+      writeSync: vi.fn().mockResolvedValue(undefined),
+    } as import("./persist").PersistenceAdapters;
+
+    const payloads: PersistPayloads = {
+      decrypted: "{}",
+      encrypted: "x",
+      syncPayload: "y",
+      updatedAt: "",
+    };
+    const key = await getTestKey();
+
+    await persistToStoresInOrder("id", payloads, adapters, key, {
+      skipSync: true,
+    });
+
+    expect(adapters.writeSession).toHaveBeenCalled();
+    expect(adapters.writeLocal).toHaveBeenCalled();
+    expect(adapters.writeSync).not.toHaveBeenCalled();
+  });
+
   it("awaits session before local, and local before sync", async () => {
     let sessionDone = false;
     let localDone = false;

@@ -36,7 +36,7 @@ export function YearlySummaryDialogContent({
               {data.incomeRows.length === 0 ? (
                 <tr>
                   <td colSpan={2} className="py-2 text-muted-foreground">
-                    —
+                    –
                   </td>
                 </tr>
               ) : (
@@ -198,7 +198,7 @@ export function YearlySummaryDialogContent({
               {data.savingsRows.length === 0 ? (
                 <tr>
                   <td colSpan={2} className="py-2 text-muted-foreground">
-                    —
+                    –
                   </td>
                 </tr>
               ) : (
@@ -248,7 +248,7 @@ export function YearlySummaryDialogContent({
               {data.expenseRows.length === 0 ? (
                 <tr>
                   <td colSpan={2} className="py-2 text-muted-foreground">
-                    —
+                    –
                   </td>
                 </tr>
               ) : (
@@ -296,7 +296,7 @@ export function YearlySummaryDialogContent({
               {data.debtRepaymentRows.length === 0 ? (
                 <tr>
                   <td colSpan={2} className="py-2 text-muted-foreground">
-                    —
+                    –
                   </td>
                 </tr>
               ) : (

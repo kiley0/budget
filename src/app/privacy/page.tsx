@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
               identifier (a random UUID); (c) in local storage: your budget data
               in encrypted form (persists until you clear it); and (d) in
               session storage: your budget data in decrypted form and the
-              decryption key, only for the duration of your tab session—cleared
+              decryption key, only for the duration of your tab session; cleared
               when you close the tab. Clearing your browser&apos;s local storage
               will remove the encrypted copy; export or sync your budget first
               if you want to keep a copy elsewhere.

@@ -41,7 +41,7 @@ describe("budgetStateToCsv", () => {
     const csv = budgetStateToCsv(state, year);
     const lines = csv.split("\n");
     expect(lines[0]).toBe("Date,Income,Expense,Name,Source,Type");
-    expect(lines[1]).toBe("2026-03-15,500,,Bonus,Employer,—");
+    expect(lines[1]).toBe("2026-03-15,500,,Bonus,Employer,–");
     expect(lines.length).toBe(2);
   });
 
@@ -81,8 +81,8 @@ describe("budgetStateToCsv", () => {
     const lines = csv.split("\n");
     expect(lines[0]).toBe("Date,Income,Expense,Name,Source,Type");
     expect(lines.length).toBe(13);
-    expect(lines[1]).toBe("2026-01-15,3000,,Paycheck,Salary,—");
-    expect(lines[12]).toBe("2026-12-15,3000,,Paycheck,Salary,—");
+    expect(lines[1]).toBe("2026-01-15,3000,,Paycheck,Salary,–");
+    expect(lines[12]).toBe("2026-12-15,3000,,Paycheck,Salary,–");
   });
 
   it("respects startDate and endDate for recurring event", () => {
@@ -106,8 +106,8 @@ describe("budgetStateToCsv", () => {
     const lines = csv.split("\n");
     expect(lines[0]).toBe("Date,Income,Expense,Name,Source,Type");
     expect(lines.length).toBe(5); // Apr, May, Jun, Jul
-    expect(lines[1]).toBe("2026-04-01,2000,,Contract,,—");
-    expect(lines[4]).toBe("2026-07-01,2000,,Contract,,—");
+    expect(lines[1]).toBe("2026-04-01,2000,,Contract,,–");
+    expect(lines[4]).toBe("2026-07-01,2000,,Contract,,–");
   });
 
   it("clamps day 31 to last day of month (e.g. February)", () => {
@@ -128,7 +128,7 @@ describe("budgetStateToCsv", () => {
     expect(lines.length).toBe(13);
     // 2026 is not a leap year, so Feb has 28 days
     const febLine = lines.find((l) => l.startsWith("2026-02-"));
-    expect(febLine).toBe("2026-02-28,,1500,Rent,,—");
+    expect(febLine).toBe("2026-02-28,,1500,Rent,,–");
   });
 
   it("includes expense events with source name", () => {
@@ -147,7 +147,7 @@ describe("budgetStateToCsv", () => {
     };
     const csv = budgetStateToCsv(state, year);
     const lines = csv.split("\n");
-    expect(lines[1]).toBe("2026-01-01,,1200,Rent,Landlord,—");
+    expect(lines[1]).toBe("2026-01-01,,1200,Rent,Landlord,–");
   });
 
   it("sorts rows by date", () => {
@@ -170,8 +170,8 @@ describe("budgetStateToCsv", () => {
     };
     const csv = budgetStateToCsv(state, year);
     const lines = csv.split("\n");
-    expect(lines[1]).toBe("2026-01-15,200,,B,,—");
-    expect(lines[2]).toBe("2026-12-01,100,,A,,—");
+    expect(lines[1]).toBe("2026-01-15,200,,B,,–");
+    expect(lines[2]).toBe("2026-12-01,100,,A,,–");
   });
 
   it("escapes fields containing commas and quotes", () => {

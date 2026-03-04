@@ -30,7 +30,7 @@ export function YearlySummarySection({
       <Card className="bg-muted/30 px-4 py-4">
         <CardHeader className="px-0 pb-0">
           <CardTitle id="yearly-summary-heading" className="text-lg">
-            Income and Expenses Summary — {periodLabel}
+            Income and Expenses Summary: {periodLabel}
           </CardTitle>
           <CardDescription>
             Totals for the selected period based on expected income (take home)

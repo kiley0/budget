@@ -36,7 +36,7 @@ describe("YearlySummaryDialogContent", () => {
         name: /Income \(after taxes and withholdings\)/,
       }),
     ).toBeInTheDocument();
-    const emptyCells = screen.getAllByText("—");
+    const emptyCells = screen.getAllByText("–");
     expect(emptyCells.length).toBeGreaterThanOrEqual(1);
   });
 
