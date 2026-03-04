@@ -4,18 +4,44 @@ The fastest way to forecast your income and expenses. Quickly create a budget fo
 
 ## What it does
 
-- **Plan by month** — Define expected income sources and expenses (one-time or recurring by day-of-month). See profit and loss for each month and the full year.
-- **Share easily** — Share your budget by sending a link. No passwords to exchange, no exporting spreadsheets.
-- **Private by default** — End-to-end encryption. Your data is encrypted with a passphrase you choose; decrypted data exists only in your browser session. The server never sees your numbers.
-- **Not a transaction tracker** — This app plans expected income and expenses. It doesn't connect to banks or log transactions; it’s for near-term budget forecasting.
+- **Plan by month** — Set expected income and expenses for each month. See profit and loss at a glance and adjust as life changes.
+- **End-to-end encryption** — Your financial data stays private. Encrypted for sync and long-term storage; decrypted data exists only in your tab session. We never see your numbers.
+- **Share with partner** — Invite your spouse or financial planner to view and collaborate. As simple as sharing a link.
+- **Year at a glance** — Annual income, expenses, and net totals. Not a transaction tracker—just a simple way to plan your near-term budget.
 
 ## How it works
 
-- **Passphrase & key** — You create or enter a passphrase on the get-started screen. The app derives an encryption key from it (PBKDF2 + salt in localStorage). The key is kept in memory only (Zustand session store) and is never sent to the server.
-- **Encryption** — Budget state is encrypted with AES-GCM (client-side) before being written to localStorage or sent to the sync API. Only you can decrypt it.
-- **Budget ID** — Each budget has a UUID (`budgetId`) in the URL (`/budget/[budgetId]`). It's created on first use and stored in localStorage so `/budget` can redirect to your budget. Share the link to collaborate.
-- **Persistence** — On every change, the app saves encrypted data to localStorage and (if configured) to Vercel Blob via `POST /api/sync`. Load order: try sync first, then fall back to localStorage.
-- **Flow** — Home → Get started (create/enter passphrase) → Budget page. From there you manage income sources, expense destinations, and events; import/export JSON; and view monthly P&L and yearly summary. Logout clears the in-memory key and returns to home.
+### Budget creation
+
+1. **Get started** — You land on the get-started page. Create a new passphrase (8+ chars) or enter an existing one to unlock a budget.
+2. **Key derivation** — The app derives an encryption key from your passphrase (PBKDF2 + salt in localStorage). The key lives in memory (Zustand session store) and in sessionStorage (so you don't re-enter the passphrase on tab reload). The key is never sent to the server.
+3. **First budget** — On first use, the app generates a UUID (`budgetId`) and stores it in the URL (`/budget/[budgetId]`). `budgetId` is also saved in localStorage so `/budget` can redirect to your budget. Share the link to collaborate.
+4. **Empty state** — A new budget starts with no income sources or expenses. You add them from the budget page.
+
+### Saving (persistence order)
+
+On every change (first change saves immediately; rapid edits debounce 400ms), the app persists in this order:
+
+1. **Session storage** — Decrypted JSON + encryption key. Enables fast reload in the same tab without re-entering the passphrase.
+2. **Local storage** — Encrypted payload. Device-persistent backup.
+3. **Vercel Blob** — Portable encrypted payload (salt + ciphertext) plus metadata (`updatedAt`) for version comparison. Synced via `POST /api/sync`.
+
+The server never sees the passphrase or plaintext. Only encrypted data is stored and transmitted.
+
+### Loading (priority order)
+
+1. **Session storage (fast path)** — If decrypted data and key exist, load from session. No passphrase needed on reload.
+2. **Local storage** — If no session, try encrypted data in localStorage. Decrypt, populate session, then load.
+3. **Vercel Blob** — If local is empty, fetch from `GET /api/sync?budgetId=...`. The sync payload is portable (includes salt) so any device can decrypt with just the passphrase.
+4. **Newer version check** — After loading from session or local, the app fetches remote metadata (`GET /api/sync?budgetId=...&meta=1`) to compare `updatedAt`. If a newer version exists in the cloud (e.g., from another device), a dialog prompts you to enter your passphrase and update. Dismissing triggers a 15‑minute cooldown.
+
+### Background sync polling
+
+While the budget page is open, the app polls for newer versions every 3 minutes. Polling pauses when the tab is hidden or after 10 minutes of inactivity, and resumes when you become active again.
+
+### Flow
+
+Home → Get started (create/enter passphrase) → Budget page. From there you manage income sources, expense destinations, and events; import/export JSON; and view monthly P&L and yearly summary. Logout clears the in-memory key and session data, then returns to home.
 
 ## Getting started
 
@@ -32,26 +58,34 @@ npm run dev
 
 All app code lives under **`src/`**.
 
-| What                   | Where                                                                                                                                                |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Routes**             | `src/app/` — `page.tsx` (home), `get-started/page.tsx`, `budget/page.tsx` (redirect), `budget/[budgetId]/page.tsx` (main budget UI).                 |
-| **API**                | `src/app/api/sync/` — GET (fetch blob) and POST (save blob) for Vercel Blob. `api/stock-price/` for live stock quotes.                               |
-| **State**              | `src/store/` — `budget.ts` (Zustand budget state, load/save, CRUD), `session.ts` (in-memory key, unlock state).                                      |
-| **Crypto**             | `src/lib/crypto.ts` — key derivation, encrypt/decrypt, verify passphrase.                                                                            |
-| **Constants & config** | `src/lib/constants.ts` — storage key prefixes, expense categories, labels.                                                                           |
-| **Budget UI**          | `src/components/budget/` — header (export/import/logout), yearly summary, monthly P&L, dialogs for adding sources/destinations.                      |
-| **Hooks**              | `src/hooks/` — `useBudgetMonthData` (per-month events, yearly totals), `useBudgetSourceNames` (ID → name), `useBudgetHotkeys`, `useStockPriceFetch`. |
-| **Utilities**          | `src/lib/` — `schedule-format.ts` (dates, ordinals), `schedule-builders.ts` (form → schedule), `import-normalizers.ts` (JSON → BudgetState).         |
+| What                   | Where                                                                                                                                                      |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Routes**             | `src/app/` — `page.tsx` (home), `get-started/page.tsx`, `budget/page.tsx` (redirect), `budget/[budgetId]/page.tsx` (main budget UI).                       |
+| **API**                | `src/app/api/sync/` — GET (blob or metadata with `?meta=1`) and POST (save blob + metadata) for Vercel Blob. `api/stock-price/` for live stock quotes.     |
+| **State**              | `src/store/` — `budget.ts` (Zustand budget state, load/save, CRUD, sync), `session.ts` (in-memory key, unlock state).                                      |
+| **Persistence**        | `src/lib/budget-persistence/` — Orchestrates save order (session → local → sync). Testable adapters.                                                       |
+| **Crypto**             | `src/lib/crypto.ts` — key derivation, encrypt/decrypt, verify passphrase.                                                                                  |
+| **Constants & config** | `src/lib/constants.ts` — storage key prefixes, expense categories, labels.                                                                                 |
+| **Budget UI**          | `src/components/budget/` — header (export/import/logout), yearly summary, monthly P&L, dialogs for adding sources/destinations.                            |
+| **Hooks**              | `src/hooks/` — `useBudgetMonthData`, `useBudgetSourceNames`, `useBudgetHotkeys`, `useStockPriceFetch`, `useSyncVersionPolling` (polls for newer versions). |
+| **Utilities**          | `src/lib/` — `schedule-format.ts` (dates, ordinals), `schedule-builders.ts` (form → schedule), `import-normalizers.ts` (JSON → BudgetState).               |
 
 More detail on conventions and adding features: **[src/README.md](src/README.md)**.
 
 ## Sync (Vercel Blob)
 
-Encrypted budget data is synced to Vercel Blob at `sync/{budgetId}` so it can be loaded on other devices. The server never sees the passphrase or plaintext.
+Encrypted budget data is synced to Vercel Blob so it can be loaded on other devices. The server never sees the passphrase or plaintext.
 
+- **Blob** — Main data at `sync/{budgetId}` (encrypted, portable format).
+- **Metadata** — Version info at `sync/{budgetId}.meta` (`updatedAt`) for lightweight "newer version?" checks without fetching the full blob.
+- **API** — `GET /api/sync?budgetId=...` (blob) or `?meta=1` (metadata only). `POST /api/sync` with `{ budgetId, data, updatedAt? }` writes the blob and metadata.
 - **Deploy:** Create a [Vercel Blob store](https://vercel.com/docs/storage/vercel-blob) in your project; `BLOB_READ_WRITE_TOKEN` is set automatically.
 - **Local:** Run `vercel env pull` to use the same env (including the blob token) as your deployed project.
 
 ## Deploy on Vercel
 
 Deploy via the [Vercel Platform](https://vercel.com/new). See [Next.js deployment docs](https://nextjs.org/docs/app/building-your-application/deploying) for details.
+
+## License
+
+Sunrise Budget is proprietary software. It is not open source. You may self-host and run this application for your own use at no charge. A hosted version is available at [sunrisebudget.com](https://sunrisebudget.com) if you prefer not to run it yourself.
