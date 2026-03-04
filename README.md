@@ -45,14 +45,43 @@ Home → Get started (create/enter passphrase) → Budget page. From there you m
 
 ## Getting started
 
-```bash
-npm install
-npm run dev
-```
+Run Sunrise Budget locally:
 
-**Local:** Open [http://localhost:3421](http://localhost:3421). **Production:** [https://sunrisebudget.com](https://sunrisebudget.com). Use "Get started" to create a passphrase and open your budget.
+1. **Clone the repository**
 
-**Scripts:** `npm run build` / `npm run start` (port 3421), `npm run lint`, `npm run typecheck`, `npm run check-all`, `npm run format`, `npm run test` / `npm run test:run`.
+   ```bash
+   git clone https://github.com/kiley0/budget.git
+   cd budget
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Run locally**
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3421](http://localhost:3421) and use "Get started" to create a passphrase and open your budget. Session and local storage work without any extra setup—sync across devices is optional.
+
+4. **Optional: Enable sync across devices**
+
+   To load budgets on other devices (phone, another computer), set up [Vercel Blob](https://vercel.com/docs/storage/vercel-blob). Create a blob store in your Vercel project and add `BLOB_READ_WRITE_TOKEN` to your environment. See [Sync (Vercel Blob)](#sync-vercel-blob) below for details.
+
+5. **Run in production**
+
+   ```bash
+   npm run build
+   npm run start
+   ```
+
+   The app runs on port 3421. Deploy to [Vercel](https://vercel.com/new), Railway, or any Node.js host.
+
+**Other scripts:** `npm run lint`, `npm run typecheck`, `npm run check-all`, `npm run format`, `npm run test` / `npm run test:run`.
 
 ## Where to find things
 
