@@ -99,7 +99,7 @@ describe("filterEventsForMonth", () => {
         id: "1",
         schedule: {
           type: "recurring" as const,
-          dayOfMonth: 15,
+          daysOfMonth: [15],
           startDate: "2024-03-01",
           endDate: "2024-08-31",
         },
@@ -108,5 +108,27 @@ describe("filterEventsForMonth", () => {
     expect(filterEventsForMonth(events, 2024, 2)).toHaveLength(0);
     expect(filterEventsForMonth(events, 2024, 6)).toHaveLength(1);
     expect(filterEventsForMonth(events, 2024, 9)).toHaveLength(0);
+  });
+
+  it("filters whole-month events by startDate/endDate range", () => {
+    const events = [
+      {
+        id: "1",
+        schedule: {
+          type: "whole-month" as const,
+          startDate: "2024-03-01",
+          endDate: "2024-08-31",
+        },
+      },
+    ];
+    expect(filterEventsForMonth(events, 2024, 2)).toHaveLength(0);
+    expect(filterEventsForMonth(events, 2024, 6)).toHaveLength(1);
+    expect(filterEventsForMonth(events, 2024, 9)).toHaveLength(0);
+  });
+
+  it("includes whole-month events with no range in all months", () => {
+    const events = [{ id: "1", schedule: { type: "whole-month" as const } }];
+    expect(filterEventsForMonth(events, 2024, 1)).toHaveLength(1);
+    expect(filterEventsForMonth(events, 2024, 12)).toHaveLength(1);
   });
 });

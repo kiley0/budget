@@ -1,0 +1,26 @@
+---
+description: Vitest testing patterns
+globs: "**/*.test.{ts,tsx}"
+alwaysApply: false
+---
+
+# Testing (Vitest)
+
+- Co-locate tests: `foo.ts` → `foo.test.ts`
+- Use `describe`, `it`, `expect` from vitest
+- Pure lib code: test directly; no mocks needed for isolated functions
+- Components/hooks: use @testing-library/react; render, screen, userEvent
+- Run `npm run test:run` to verify tests pass
+
+## Example
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { myFunction } from "./my-module";
+
+describe("myFunction", () => {
+  it("returns expected value for valid input", () => {
+    expect(myFunction("input")).toEqual(expected);
+  });
+});
+```

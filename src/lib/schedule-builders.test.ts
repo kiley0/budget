@@ -38,7 +38,7 @@ describe("buildIncomeScheduleFromForm", () => {
       undefined,
       undefined,
     );
-    expect(result).toEqual({ type: "recurring", dayOfMonth: 15 });
+    expect(result).toEqual({ type: "recurring", daysOfMonth: [15] });
   });
   it("returns recurring with start and end dates when provided", () => {
     const result = buildIncomeScheduleFromForm(
@@ -50,7 +50,7 @@ describe("buildIncomeScheduleFromForm", () => {
     );
     expect(result).toEqual({
       type: "recurring",
-      dayOfMonth: 1,
+      daysOfMonth: [1],
       startDate: "2025-01-01",
       endDate: "2025-12-31",
     });
@@ -65,6 +65,19 @@ describe("buildIncomeScheduleFromForm", () => {
     expect(
       buildIncomeScheduleFromForm("recurring", "", "abc", undefined, undefined),
     ).toBeNull();
+  });
+  it("returns recurring with multiple days", () => {
+    const result = buildIncomeScheduleFromForm(
+      "recurring",
+      "",
+      "1, 15, 23, 29",
+      undefined,
+      undefined,
+    );
+    expect(result).toEqual({
+      type: "recurring",
+      daysOfMonth: [1, 15, 23, 29],
+    });
   });
 });
 
@@ -92,11 +105,35 @@ describe("buildExpenseScheduleFromForm", () => {
       undefined,
       undefined,
     );
-    expect(result).toEqual({ type: "recurring", dayOfMonth: 25 });
+    expect(result).toEqual({ type: "recurring", daysOfMonth: [25] });
   });
   it("returns null for recurring with invalid day", () => {
     expect(
       buildExpenseScheduleFromForm("recurring", "", "99", undefined, undefined),
     ).toBeNull();
+  });
+  it("returns whole-month schedule", () => {
+    const result = buildExpenseScheduleFromForm(
+      "whole-month",
+      "",
+      "",
+      undefined,
+      undefined,
+    );
+    expect(result).toEqual({ type: "whole-month" });
+  });
+  it("returns whole-month with optional startDate and endDate", () => {
+    const result = buildExpenseScheduleFromForm(
+      "whole-month",
+      "",
+      "",
+      "2025-01-01",
+      "2025-12-31",
+    );
+    expect(result).toEqual({
+      type: "whole-month",
+      startDate: "2025-01-01",
+      endDate: "2025-12-31",
+    });
   });
 });

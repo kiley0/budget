@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   addIncomeSource,
-  addExpenseDestination,
   addIncomeEvent,
   addExpenseEvent,
 } from "@/store/budget";
@@ -41,7 +40,7 @@ import {
 import { PaycheckIncomeForm } from "./PaycheckIncomeForm";
 import { StockIncomeForm } from "./StockIncomeForm";
 
-export type OnboardingStep = 1 | 2 | 3 | 4 | "done";
+export type OnboardingStep = 1 | 2 | 3 | "done";
 
 export interface OnboardingFlowProps {
   open: boolean;
@@ -72,15 +71,12 @@ export function OnboardingFlow({
   const [stockShares, setStockShares] = useState("");
   const [stockTaxRate, setStockTaxRate] = useState("");
   const stockFetch = useStockPriceFetch({ onAmountComputed: setIncomeAmount });
-  const [expenseName, setExpenseName] = useState("");
-  const [expenseDesc, setExpenseDesc] = useState("");
   const [expenseLabel, setExpenseLabel] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseCategory, setExpenseCategory] = useState("");
   const [expenseDay, setExpenseDay] = useState("1");
 
   const incomeSources = useBudgetStore((s) => s.incomeSources);
-  const expenseDestinations = useBudgetStore((s) => s.expenseDestinations);
 
   function resetToStep1() {
     setIncomeName("");
@@ -95,8 +91,6 @@ export function OnboardingFlow({
     setStockShares("");
     setStockTaxRate("");
     stockFetch.reset();
-    setExpenseName("");
-    setExpenseDesc("");
     setExpenseLabel("");
     setExpenseAmount("");
     setExpenseCategory("");
@@ -121,8 +115,8 @@ export function OnboardingFlow({
     const day = parseInt(incomeDay, 10);
     const schedule =
       Number.isNaN(day) || day < DAY_OF_MONTH_MIN || day > DAY_OF_MONTH_MAX
-        ? { type: "recurring" as const, dayOfMonth: 15 }
-        : { type: "recurring" as const, dayOfMonth: day };
+        ? { type: "recurring" as const, daysOfMonth: [15] }
+        : { type: "recurring" as const, daysOfMonth: [day] };
 
     const parsed = parseIncomeFormFromInputs(
       incomeType,
@@ -152,29 +146,18 @@ export function OnboardingFlow({
 
   function handleStep3(e: React.FormEvent) {
     e.preventDefault();
-    const name = expenseName.trim();
-    if (!name) return;
-    addExpenseDestination(name, expenseDesc.trim());
-    onStepChange(4);
-  }
-
-  function handleStep4(e: React.FormEvent) {
-    e.preventDefault();
     const label = expenseLabel.trim();
     if (!label) return;
     const amount = parseCurrency(expenseAmount);
     if (Number.isNaN(amount) || amount < 0) return;
-    const sourceId = expenseDestinations[0]?.id;
-    if (!sourceId) return;
     const day = parseInt(expenseDay, 10);
     const schedule =
       Number.isNaN(day) || day < DAY_OF_MONTH_MIN || day > DAY_OF_MONTH_MAX
-        ? { type: "recurring" as const, dayOfMonth: DAY_OF_MONTH_MIN }
-        : { type: "recurring" as const, dayOfMonth: day };
+        ? { type: "recurring" as const, daysOfMonth: [DAY_OF_MONTH_MIN] }
+        : { type: "recurring" as const, daysOfMonth: [day] };
     addExpenseEvent({
       label,
       amount,
-      expenseDestinationId: sourceId,
       category: expenseCategory || undefined,
       schedule,
     });
@@ -198,12 +181,11 @@ export function OnboardingFlow({
           <DialogTitle>
             {step === 1 && "Add your first income source"}
             {step === 2 && "Add your first expected income"}
-            {step === 3 && "Add your first expense destination"}
-            {step === 4 && "Add your first expected expense"}
+            {step === 3 && "Add your first expected expense"}
             {step === "done" && "You're all set!"}
           </DialogTitle>
           {step !== "done" && (
-            <p className="text-sm text-muted-foreground">Step {step} of 4</p>
+            <p className="text-sm text-muted-foreground">Step {step} of 3</p>
           )}
           <DialogDescription>
             {step === 1 &&
@@ -211,8 +193,6 @@ export function OnboardingFlow({
             {step === 2 &&
               "Expected income is what you plan to receive and when."}
             {step === 3 &&
-              "Destinations are where your money goes (e.g. landlord, utility company)."}
-            {step === 4 &&
               "Expected expenses are what you plan to pay and when."}
             {step === "done" &&
               "You've added your first income and expense. You can manage and add more from the main budget view."}
@@ -365,37 +345,6 @@ export function OnboardingFlow({
         )}
         {step === 3 && (
           <form onSubmit={handleStep3} className="mt-4 space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="onboard-expense-name">Name</Label>
-              <Input
-                id="onboard-expense-name"
-                value={expenseName}
-                onChange={(e) => setExpenseName(e.target.value)}
-                placeholder="e.g. Landlord"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="onboard-expense-desc">
-                Description (optional)
-              </Label>
-              <Input
-                id="onboard-expense-desc"
-                value={expenseDesc}
-                onChange={(e) => setExpenseDesc(e.target.value)}
-                placeholder="e.g. Rent payments"
-              />
-            </div>
-            <DialogFooter className="gap-2 pt-2 sm:justify-end">
-              <Button type="button" variant="ghost" onClick={resetToStep1}>
-                Skip
-              </Button>
-              <Button type="submit">Continue</Button>
-            </DialogFooter>
-          </form>
-        )}
-        {step === 4 && (
-          <form onSubmit={handleStep4} className="mt-4 space-y-3">
             <div className="space-y-2">
               <Label htmlFor="onboard-expense-label">Label</Label>
               <Input

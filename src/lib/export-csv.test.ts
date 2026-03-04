@@ -73,7 +73,7 @@ describe("budgetStateToCsv", () => {
           label: "Paycheck",
           amount: 3000,
           incomeSourceId: "s1",
-          schedule: { type: "recurring", dayOfMonth: 15 },
+          schedule: { type: "recurring", daysOfMonth: [15] },
         },
       ],
     };
@@ -95,7 +95,7 @@ describe("budgetStateToCsv", () => {
           amount: 2000,
           schedule: {
             type: "recurring",
-            dayOfMonth: 1,
+            daysOfMonth: [1],
             startDate: "2026-04-01",
             endDate: "2026-07-31",
           },
@@ -118,7 +118,7 @@ describe("budgetStateToCsv", () => {
           id: "e1",
           label: "Rent",
           amount: 1500,
-          schedule: { type: "recurring", dayOfMonth: 31 },
+          schedule: { type: "recurring", daysOfMonth: [31] },
         },
       ],
     };
@@ -134,20 +134,18 @@ describe("budgetStateToCsv", () => {
   it("includes expense events with source name", () => {
     const state: BudgetState = {
       ...emptyState(),
-      expenseDestinations: [{ id: "es1", name: "Landlord", description: "" }],
       expenseEvents: [
         {
           id: "e1",
           label: "Rent",
           amount: 1200,
-          expenseDestinationId: "es1",
           schedule: { type: "one-time", date: "2026-01-01" },
         },
       ],
     };
     const csv = budgetStateToCsv(state, year);
     const lines = csv.split("\n");
-    expect(lines[1]).toBe("2026-01-01,,1200,Rent,Landlord,–");
+    expect(lines[1]).toBe("2026-01-01,,1200,Rent,,–");
   });
 
   it("sorts rows by date", () => {

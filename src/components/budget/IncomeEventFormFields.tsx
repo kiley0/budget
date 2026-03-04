@@ -13,6 +13,7 @@ import {
 import { INCOME_TYPES, STOCK_INCOME_TYPES } from "@/lib/constants";
 import type { IncomeSource } from "@/store/budget";
 import { PaycheckIncomeForm } from "./PaycheckIncomeForm";
+import type { ScheduleType } from "./ScheduleFields";
 import { ScheduleFields } from "./ScheduleFields";
 import { StockIncomeForm } from "./StockIncomeForm";
 
@@ -50,7 +51,7 @@ export interface IncomeEventFormFieldsProps {
   onAmountChange: (v: string) => void;
   // Schedule
   scheduleType: "one-time" | "recurring";
-  onScheduleTypeChange: (v: "one-time" | "recurring") => void;
+  onScheduleTypeChange: (v: ScheduleType) => void;
   date: string;
   onDateChange: (v: string) => void;
   dayOfMonth: string;

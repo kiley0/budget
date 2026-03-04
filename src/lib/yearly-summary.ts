@@ -1,9 +1,4 @@
-import type {
-  IncomeEvent,
-  ExpenseEvent,
-  IncomeSource,
-  ExpenseDestination,
-} from "@/store/budget";
+import type { IncomeEvent, ExpenseEvent, IncomeSource } from "@/store/budget";
 import type { MonthSlot } from "@/lib/date-view";
 import { getMonthKey } from "@/store/budget";
 import { filterEventsForMonth } from "@/lib/event-month-filter";
@@ -20,14 +15,6 @@ function getIncomeSourceName(
 ): string {
   if (!id) return "";
   return sources.find((s) => s.id === id)?.name ?? "";
-}
-
-function getExpenseDestinationName(
-  destinations: ExpenseDestination[],
-  id: string | undefined,
-): string {
-  if (!id) return "";
-  return destinations.find((d) => d.id === id)?.name ?? "";
 }
 
 export interface PaycheckBreakdown {
@@ -81,7 +68,6 @@ export function buildYearlySummaryData(
     }
   > = {},
   incomeSources: IncomeSource[] = [],
-  expenseDestinations: ExpenseDestination[] = [],
 ): YearlySummaryData {
   const recurringIncomeMap = new Map<
     string,
@@ -123,7 +109,13 @@ export function buildYearlySummaryData(
     const incomeForMonth = filterEventsForMonth(incomeEvents, year, month);
 
     for (const e of incomeForMonth) {
-      const amount = actuals?.actualIncomeByEventId?.[e.id] ?? e.amount;
+      const baseAmount = actuals?.actualIncomeByEventId?.[e.id] ?? undefined;
+      const amount =
+        baseAmount !== undefined
+          ? baseAmount
+          : e.schedule.type === "recurring"
+            ? e.amount * e.schedule.daysOfMonth.length
+            : e.amount;
       const sublabel =
         getIncomeSourceName(incomeSources, e.incomeSourceId) || undefined;
       if (e.schedule.type === "recurring") {
@@ -177,11 +169,13 @@ export function buildYearlySummaryData(
       }
       const w = e.paycheckDetails?.withholdings;
       const gross = e.paycheckDetails?.grossAmount;
+      const occMult =
+        e.schedule.type === "recurring" ? e.schedule.daysOfMonth.length : 1;
       if (w || (gross ?? 0) > 0) {
         const add = (key: string, val: number | undefined) => {
           if ((val ?? 0) > 0) {
             const prev = preTaxSavingsByType.get(key) ?? 0;
-            preTaxSavingsByType.set(key, prev + (val ?? 0));
+            preTaxSavingsByType.set(key, prev + (val ?? 0) * occMult);
           }
         };
         add("401(k) / Retirement", w?.retirement401k);
@@ -192,13 +186,13 @@ export function buildYearlySummaryData(
           pb = { grossSum: 0, withholdingsByLabel: new Map() };
           paycheckBreakdownByEventId.set(e.id, pb);
         }
-        pb.grossSum += gross ?? 0;
+        pb.grossSum += (gross ?? 0) * occMult;
         for (const { key, label } of PAYCHECK_WITHHOLDINGS) {
           const val = (w as Record<string, number | undefined>)?.[key];
           if ((val ?? 0) > 0) {
             pb.withholdingsByLabel.set(
               label,
-              (pb.withholdingsByLabel.get(label) ?? 0) + (val ?? 0),
+              (pb.withholdingsByLabel.get(label) ?? 0) + (val ?? 0) * occMult,
             );
           }
         }
@@ -238,31 +232,35 @@ export function buildYearlySummaryData(
     const expenseForMonth = filterEventsForMonth(expenseEvents, year, month);
 
     for (const e of expenseForMonth) {
-      const amount = actuals?.actualExpenseByEventId?.[e.id] ?? e.amount;
-      const sublabel =
-        getExpenseDestinationName(
-          expenseDestinations,
-          e.expenseDestinationId,
-        ) || undefined;
+      const actualAmount = actuals?.actualExpenseByEventId?.[e.id];
+      const amount =
+        actualAmount !== undefined
+          ? actualAmount
+          : e.schedule.type === "recurring"
+            ? e.amount * e.schedule.daysOfMonth.length
+            : e.schedule.type === "whole-month"
+              ? e.amount
+              : e.amount;
       if (
         e.category !== DEBT_REPAYMENT_CATEGORY &&
         e.category !== SAVINGS_CATEGORY
       ) {
-        if (e.schedule.type === "recurring") {
+        if (
+          e.schedule.type === "recurring" ||
+          e.schedule.type === "whole-month"
+        ) {
           const existing = recurringExpenseMap.get(e.id);
           if (existing) {
             existing.sum += amount;
           } else {
             recurringExpenseMap.set(e.id, {
               label: e.label,
-              sublabel,
               sum: amount,
             });
           }
         } else {
           oneTimeExpenseRows.push({
             label: e.label,
-            sublabel,
             date: e.schedule.date.slice(0, 10),
             amount,
             isRecurring: false,
@@ -270,57 +268,65 @@ export function buildYearlySummaryData(
         }
       }
       if (e.category === SAVINGS_CATEGORY) {
-        const amount = actuals?.actualExpenseByEventId?.[e.id] ?? e.amount;
-        const sublabel =
-          getExpenseDestinationName(
-            expenseDestinations,
-            e.expenseDestinationId,
-          ) || undefined;
-        if (e.schedule.type === "recurring") {
+        const savingsActual = actuals?.actualExpenseByEventId?.[e.id];
+        const savingsAmount =
+          savingsActual !== undefined
+            ? savingsActual
+            : e.schedule.type === "recurring"
+              ? e.amount * e.schedule.daysOfMonth.length
+              : e.schedule.type === "whole-month"
+                ? e.amount
+                : e.amount;
+        if (
+          e.schedule.type === "recurring" ||
+          e.schedule.type === "whole-month"
+        ) {
           const existing = recurringSavingsMap.get(e.id);
           if (existing) {
-            existing.sum += amount;
+            existing.sum += savingsAmount;
           } else {
             recurringSavingsMap.set(e.id, {
               label: e.label,
-              sublabel,
-              sum: amount,
+              sum: savingsAmount,
             });
           }
         } else {
           oneTimeSavingsRows.push({
             label: e.label,
-            sublabel,
             date: e.schedule.date.slice(0, 10),
-            amount,
+            amount: savingsAmount,
             isRecurring: false,
           });
         }
       }
       if (e.category === DEBT_REPAYMENT_CATEGORY) {
-        const amount = actuals?.actualExpenseByEventId?.[e.id] ?? e.amount;
-        const sublabel =
-          getExpenseDestinationName(
-            expenseDestinations,
-            e.expenseDestinationId,
-          ) || undefined;
-        if (e.schedule.type === "recurring") {
+        const debtActual = actuals?.actualExpenseByEventId?.[e.id];
+        const debtAmount =
+          debtActual !== undefined
+            ? debtActual
+            : e.schedule.type === "recurring"
+              ? e.amount * e.schedule.daysOfMonth.length
+              : e.schedule.type === "whole-month"
+                ? e.amount
+                : e.amount;
+        if (
+          e.schedule.type === "recurring" ||
+          e.schedule.type === "whole-month"
+        ) {
           const existing = recurringDebtMap.get(e.id);
           if (existing) {
-            existing.sum += amount;
+            existing.sum += debtAmount;
           } else {
             recurringDebtMap.set(e.id, {
               label: e.label,
-              sublabel,
-              sum: amount,
+              sum: debtAmount,
             });
           }
         } else {
           oneTimeDebtRows.push({
             label: e.label,
-            sublabel,
             date: e.schedule.date.slice(0, 10),
-            amount,
+            amount: debtAmount,
             isRecurring: false,
           });
         }

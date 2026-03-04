@@ -1,12 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildYearlySummaryData } from "./yearly-summary";
 import { SAVINGS_CATEGORY, DEBT_REPAYMENT_CATEGORY } from "./constants";
-import type {
-  IncomeEvent,
-  ExpenseEvent,
-  IncomeSource,
-  ExpenseDestination,
-} from "@/store/budget";
+import type { IncomeEvent, ExpenseEvent, IncomeSource } from "@/store/budget";
 import type { MonthSlot } from "./date-view";
 
 function monthSlot(year: number, month: number): MonthSlot {
@@ -38,7 +33,7 @@ describe("buildYearlySummaryData", () => {
         label: "Salary",
         amount: 5000,
         incomeSourceId: "src1",
-        schedule: { type: "recurring", dayOfMonth: 15 },
+        schedule: { type: "recurring", daysOfMonth: [15] },
       },
     ];
     const months: MonthSlot[] = [
@@ -62,8 +57,7 @@ describe("buildYearlySummaryData", () => {
         id: "ee1",
         label: "Rent",
         amount: 2000,
-        expenseDestinationId: "dest1",
-        schedule: { type: "recurring", dayOfMonth: 1 },
+        schedule: { type: "recurring", daysOfMonth: [1] },
       },
     ];
     const months: MonthSlot[] = [monthSlot(2024, 1), monthSlot(2024, 2)];
@@ -127,7 +121,7 @@ describe("buildYearlySummaryData", () => {
         id: "ie1",
         label: "Salary",
         amount: 5000,
-        schedule: { type: "recurring", dayOfMonth: 15 },
+        schedule: { type: "recurring", daysOfMonth: [15] },
       },
     ];
     const months: MonthSlot[] = [
@@ -156,21 +150,21 @@ describe("buildYearlySummaryData", () => {
         label: "Rent",
         amount: 2000,
         category: "rent",
-        schedule: { type: "recurring", dayOfMonth: 1 },
+        schedule: { type: "recurring", daysOfMonth: [1] },
       },
       {
         id: "ee2",
         label: "401k",
         amount: 500,
         category: SAVINGS_CATEGORY,
-        schedule: { type: "recurring", dayOfMonth: 15 },
+        schedule: { type: "recurring", daysOfMonth: [15] },
       },
       {
         id: "ee3",
         label: "Credit card",
         amount: 300,
         category: DEBT_REPAYMENT_CATEGORY,
-        schedule: { type: "recurring", dayOfMonth: 20 },
+        schedule: { type: "recurring", daysOfMonth: [20] },
       },
     ];
     const months: MonthSlot[] = [monthSlot(2024, 1), monthSlot(2024, 2)];
@@ -207,7 +201,7 @@ describe("buildYearlySummaryData", () => {
             federalTax: 200,
           },
         },
-        schedule: { type: "recurring", dayOfMonth: 15 },
+        schedule: { type: "recurring", daysOfMonth: [15] },
       },
     ];
     const months: MonthSlot[] = [monthSlot(2024, 1), monthSlot(2024, 2)];
@@ -258,16 +252,13 @@ describe("buildYearlySummaryData", () => {
     const incomeSources: IncomeSource[] = [
       { id: "src1", name: "Employer Inc", description: "" },
     ];
-    const expenseDestinations: ExpenseDestination[] = [
-      { id: "dest1", name: "Landlord", description: "" },
-    ];
     const income: IncomeEvent[] = [
       {
         id: "ie1",
         label: "Salary",
         amount: 5000,
         incomeSourceId: "src1",
-        schedule: { type: "recurring", dayOfMonth: 15 },
+        schedule: { type: "recurring", daysOfMonth: [15] },
       },
     ];
     const expenses: ExpenseEvent[] = [
@@ -275,8 +266,7 @@ describe("buildYearlySummaryData", () => {
         id: "ee1",
         label: "Rent",
         amount: 2000,
-        expenseDestinationId: "dest1",
-        schedule: { type: "recurring", dayOfMonth: 1 },
+        schedule: { type: "recurring", daysOfMonth: [1] },
       },
     ];
     const months: MonthSlot[] = [monthSlot(2024, 1)];
@@ -286,10 +276,9 @@ describe("buildYearlySummaryData", () => {
       months,
       {},
       incomeSources,
-      expenseDestinations,
     );
     expect(result.incomeRows[0].sublabel).toBe("Employer Inc");
-    expect(result.expenseRows[0].sublabel).toBe("Landlord");
+    expect(result.expenseRows[0].sublabel).toBeUndefined();
   });
 
   it("filters recurring events by startDate and endDate", () => {
@@ -300,7 +289,7 @@ describe("buildYearlySummaryData", () => {
         amount: 3000,
         schedule: {
           type: "recurring",
-          dayOfMonth: 1,
+          daysOfMonth: [1],
           startDate: "2024-02-01",
           endDate: "2024-03-31",
         },

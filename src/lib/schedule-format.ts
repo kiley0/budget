@@ -34,8 +34,12 @@ export function formatIncomeSchedule(schedule: IncomeEventSchedule): string {
       return schedule.date;
     }
   }
-  const n = schedule.dayOfMonth;
-  let result = `${n}${ordinalSuffix(n)} of each month`;
+  const days = schedule.daysOfMonth;
+  const dayStr =
+    days.length === 1
+      ? `${days[0]}${ordinalSuffix(days[0]!)}`
+      : days.map((d) => `${d}${ordinalSuffix(d)}`).join(", ");
+  let result = `${dayStr} of each month`;
   if (schedule.startDate) {
     try {
       const d = parseLocalDate(schedule.startDate);
@@ -94,11 +98,21 @@ function parseLocalDate(dateStr: string): Date {
   return new Date(y, m - 1, d);
 }
 
-/** Day of month used for ordering: one-time from date, recurring from dayOfMonth. */
+/** Day of month used for ordering: one-time from date, recurring from first day, whole-month first (0). */
 export function getDayForSort(event: IncomeEvent | ExpenseEvent): number {
-  return event.schedule.type === "one-time"
-    ? parseDayFromDateString(event.schedule.date)
-    : event.schedule.dayOfMonth;
+  const s = event.schedule;
+  if (s.type === "one-time") return parseDayFromDateString(s.date);
+  if (s.type === "whole-month") return 0;
+  return s.daysOfMonth[0] ?? 1;
+}
+
+/** Day label for display: "Monthly" for whole-month, else ordinal(s) like "15th" or "1st, 15th, 23rd". */
+export function formatDayForDisplay(event: IncomeEvent | ExpenseEvent): string {
+  const s = event.schedule as { type: string; daysOfMonth?: number[] };
+  if (s.type === "whole-month") return "Monthly";
+  const days = s.daysOfMonth ?? [getDayForSort(event)];
+  if (days.length === 1) return formatDayOrdinal(days[0]!);
+  return days.map(formatDayOrdinal).join(", ");
 }
 
 /** Sort by day of month (earliest first), then by amount (largest first). */
@@ -127,8 +141,46 @@ export function formatExpenseSchedule(schedule: ExpenseEventSchedule): string {
       return schedule.date;
     }
   }
-  const n = schedule.dayOfMonth;
-  let result = `${n}${ordinalSuffix(n)} of each month`;
+  if (schedule.type === "whole-month") {
+    let result = "Total for the month";
+    if (schedule.startDate) {
+      try {
+        const d = parseLocalDate(schedule.startDate);
+        if (!Number.isNaN(d.getTime())) {
+          result = `${result} from ${d.toLocaleDateString(undefined, {
+            month: "short",
+            year: "numeric",
+          })}`;
+        } else {
+          result = `${result} from ${schedule.startDate}`;
+        }
+      } catch {
+        result = `${result} from ${schedule.startDate}`;
+      }
+    }
+    if (schedule.endDate) {
+      try {
+        const d = parseLocalDate(schedule.endDate);
+        if (!Number.isNaN(d.getTime())) {
+          result = `${result} until ${d.toLocaleDateString(undefined, {
+            month: "short",
+            year: "numeric",
+          })}`;
+        } else {
+          result = `${result} until ${schedule.endDate}`;
+        }
+      } catch {
+        result = `${result} until ${schedule.endDate}`;
+      }
+    }
+    return result;
+  }
+  const days = schedule.daysOfMonth;
+  const dayStr =
+    days.length === 1
+      ? `${days[0]}${ordinalSuffix(days[0]!)}`
+      : days.map((d) => `${d}${ordinalSuffix(d)}`).join(", ");
+  let result = `${dayStr} of each month`;
   if (schedule.startDate) {
     try {
       const d = parseLocalDate(schedule.startDate);

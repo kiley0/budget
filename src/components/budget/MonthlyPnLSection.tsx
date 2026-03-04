@@ -6,10 +6,12 @@ import { useBudgetMonthData } from "@/hooks/useBudgetMonthData";
 import { useBudgetSourceNames } from "@/hooks/useBudgetSourceNames";
 import { formatCurrency, parseCurrency } from "@/lib/format";
 import {
+  formatDayForDisplay,
   formatDayOrdinal,
   getDayForSort,
   sortEventsByDayThenAmount,
 } from "@/lib/schedule-format";
+import { Repeat } from "lucide-react";
 import { DEBT_REPAYMENT_CATEGORY, getIncomeTypeLabel } from "@/lib/constants";
 import {
   type DateViewMode,
@@ -49,6 +51,18 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+
+function isWholeMonthExpense(event: IncomeEvent | ExpenseEvent): boolean {
+  return (event.schedule as { type?: string }).type === "whole-month";
+}
+
+/** Expected amount for the month: per-occurrence × occurrences for recurring. */
+function getExpectedAmountForMonth(event: IncomeEvent | ExpenseEvent): number {
+  const s = event.schedule as { type?: string; daysOfMonth?: number[] };
+  if (s.type === "recurring" && s.daysOfMonth)
+    return event.amount * s.daysOfMonth.length;
+  return event.amount;
+}
 
 function formatMonthLabel({ year, monthIndex }: MonthSlot): string {
   return new Date(year, monthIndex, 1).toLocaleString(undefined, {
@@ -109,8 +123,7 @@ export function MonthlyPnLSection({
   addIncomeDisabled?: boolean;
   addExpenseDisabled?: boolean;
 }) {
-  const { getIncomeSourceName, getExpenseDestinationName } =
-    useBudgetSourceNames();
+  const { getIncomeSourceName } = useBudgetSourceNames();
   const { getEventsForMonth, getExpenseEventsForMonth } =
     useBudgetMonthData(months);
   const actualsByMonth = useBudgetStore((s) => s.actualsByMonth);
@@ -533,8 +546,15 @@ export function MonthlyPnLSection({
                               }
                             >
                               <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                                <span className="w-7 shrink-0 text-left text-[10px] font-semibold text-muted-foreground">
-                                  {formatDayOrdinal(getDayForSort(event))}
+                                <span className="w-7 shrink-0 flex items-center text-left text-[10px] font-semibold text-muted-foreground">
+                                  {isWholeMonthExpense(event) ? (
+                                    <Repeat
+                                      className="size-3.5 shrink-0"
+                                      aria-label="Monthly total"
+                                    />
+                                  ) : (
+                                    formatDayForDisplay(event)
+                                  )}
                                 </span>
                                 <span className="min-w-0 truncate text-foreground">
                                   {event.label}
@@ -570,18 +590,22 @@ export function MonthlyPnLSection({
                                     ];
                                   const differs =
                                     actual !== undefined &&
-                                    actual !== event.amount;
+                                    actual !== getExpectedAmountForMonth(event);
                                   if (differs) {
                                     return (
                                       <>
                                         <span className="line-through text-muted-foreground">
-                                          {formatCurrency(event.amount)}
+                                          {formatCurrency(
+                                            getExpectedAmountForMonth(event),
+                                          )}
                                         </span>{" "}
                                         {formatCurrency(actual)}
                                       </>
                                     );
                                   }
-                                  return formatCurrency(event.amount);
+                                  return formatCurrency(
+                                    getExpectedAmountForMonth(event),
+                                  );
                                 })()}
                               </span>
                             </li>
@@ -638,16 +662,18 @@ export function MonthlyPnLSection({
                               }
                             >
                               <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                                <span className="w-7 shrink-0 text-left text-[10px] font-semibold text-muted-foreground">
-                                  {formatDayOrdinal(getDayForSort(event))}
+                                <span className="w-7 shrink-0 flex items-center text-left text-[10px] font-semibold text-muted-foreground">
+                                  {isWholeMonthExpense(event) ? (
+                                    <Repeat
+                                      className="size-3.5 shrink-0"
+                                      aria-label="Monthly total"
+                                    />
+                                  ) : (
+                                    formatDayForDisplay(event)
+                                  )}
                                 </span>
                                 <span className="min-w-0 truncate text-foreground">
                                   {event.label}
-                                  <span className="ml-1 text-xs text-muted-foreground">
-                                    {getExpenseDestinationName(
-                                      event.expenseDestinationId,
-                                    )}
-                                  </span>
                                 </span>
                               </div>
                               <span className="shrink-0 tabular-nums text-foreground">
@@ -658,18 +684,22 @@ export function MonthlyPnLSection({
                                     ];
                                   const differs =
                                     actual !== undefined &&
-                                    actual !== event.amount;
+                                    actual !== getExpectedAmountForMonth(event);
                                   if (differs) {
                                     return (
                                       <>
                                         <span className="line-through text-muted-foreground">
-                                          {formatCurrency(event.amount)}
+                                          {formatCurrency(
+                                            getExpectedAmountForMonth(event),
+                                          )}
                                         </span>{" "}
                                         {formatCurrency(actual)}
                                       </>
                                     );
                                   }
-                                  return formatCurrency(event.amount);
+                                  return formatCurrency(
+                                    getExpectedAmountForMonth(event),
+                                  );
                                 })()}
                               </span>
                             </li>
@@ -724,16 +754,18 @@ export function MonthlyPnLSection({
                             }
                           >
                             <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                              <span className="w-7 shrink-0 text-left text-[10px] font-semibold text-muted-foreground">
-                                {formatDayOrdinal(getDayForSort(event))}
+                              <span className="w-7 shrink-0 flex items-center text-left text-[10px] font-semibold text-muted-foreground">
+                                {isWholeMonthExpense(event) ? (
+                                  <Repeat
+                                    className="size-3.5 shrink-0"
+                                    aria-label="Monthly total"
+                                  />
+                                ) : (
+                                  formatDayForDisplay(event)
+                                )}
                               </span>
                               <span className="min-w-0 truncate text-foreground">
                                 {event.label}
-                                <span className="ml-1 text-xs text-muted-foreground">
-                                  {getExpenseDestinationName(
-                                    event.expenseDestinationId,
-                                  )}
-                                </span>
                               </span>
                             </div>
                             <span className="shrink-0 tabular-nums text-foreground">
@@ -744,18 +776,22 @@ export function MonthlyPnLSection({
                                   ];
                                 const differs =
                                   actual !== undefined &&
-                                  actual !== event.amount;
+                                  actual !== getExpectedAmountForMonth(event);
                                 if (differs) {
                                   return (
                                     <>
                                       <span className="line-through text-muted-foreground">
-                                        {formatCurrency(event.amount)}
+                                        {formatCurrency(
+                                          getExpectedAmountForMonth(event),
+                                        )}
                                       </span>{" "}
                                       {formatCurrency(actual)}
                                     </>
                                   );
                                 }
-                                return formatCurrency(event.amount);
+                                return formatCurrency(
+                                  getExpectedAmountForMonth(event),
+                                );
                               })()}
                             </span>
                           </li>
@@ -862,12 +898,21 @@ export function MonthlyPnLSection({
                           className="flex flex-wrap items-center gap-2 sm:gap-3"
                         >
                           <div className="min-w-0 flex-1 basis-48">
-                            <span className="text-sm">
-                              {formatDayOrdinal(getDayForSort(event))}{" "}
+                            <span className="text-sm inline-flex items-center gap-1.5">
+                              {isWholeMonthExpense(event) ? (
+                                <Repeat
+                                  className="size-3.5 shrink-0"
+                                  aria-label="Monthly total"
+                                />
+                              ) : (
+                                formatDayForDisplay(event)
+                              )}
                               {event.label}
                             </span>
                             <span className="ml-1 text-sm text-muted-foreground tabular-nums">
-                              (expected: {formatCurrency(event.amount)})
+                              (expected:{" "}
+                              {formatCurrency(getExpectedAmountForMonth(event))}
+                              )
                             </span>
                           </div>
                           <div className="w-full sm:w-28 shrink-0">
@@ -909,12 +954,21 @@ export function MonthlyPnLSection({
                           className="flex flex-wrap items-center gap-2 sm:gap-3"
                         >
                           <div className="min-w-0 flex-1 basis-48">
-                            <span className="text-sm">
-                              {formatDayOrdinal(getDayForSort(event))}{" "}
+                            <span className="text-sm inline-flex items-center gap-1.5">
+                              {isWholeMonthExpense(event) ? (
+                                <Repeat
+                                  className="size-3.5 shrink-0"
+                                  aria-label="Monthly total"
+                                />
+                              ) : (
+                                formatDayForDisplay(event)
+                              )}
                               {event.label}
                             </span>
                             <span className="ml-1 text-sm text-muted-foreground tabular-nums">
-                              (expected: {formatCurrency(event.amount)})
+                              (expected:{" "}
+                              {formatCurrency(getExpectedAmountForMonth(event))}
+                              )
                             </span>
                           </div>
                           <div className="w-full sm:w-28 shrink-0">

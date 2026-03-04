@@ -30,7 +30,23 @@ function getDatesForSchedule(
     const [y] = schedule.date.split("-").map(Number);
     return y === year ? [dateStr] : [];
   }
-  const { dayOfMonth, startDate, endDate } = schedule;
+  if (schedule.type === "whole-month") {
+    const { startDate, endDate } = schedule;
+    const dates: string[] = [];
+    for (let month = 1; month <= 12; month++) {
+      if (startDate) {
+        const [sy, sm] = startDate.split("-").map(Number);
+        if (year < sy || (year === sy && month < sm)) continue;
+      }
+      if (endDate) {
+        const [ey, em] = endDate.split("-").map(Number);
+        if (year > ey || (year === ey && month > em)) continue;
+      }
+      dates.push(`${year}-${String(month).padStart(2, "0")}-01`);
+    }
+    return dates;
+  }
+  const { daysOfMonth, startDate, endDate } = schedule;
   const dates: string[] = [];
   for (let month = 1; month <= 12; month++) {
     if (startDate) {
@@ -42,9 +58,11 @@ function getDatesForSchedule(
       if (year > ey || (year === ey && month > em)) continue;
     }
     const lastDay = new Date(year, month, 0).getDate();
-    const day = Math.min(dayOfMonth, lastDay);
-    const date = new Date(year, month - 1, day);
-    dates.push(date.toISOString().slice(0, 10));
+    for (const dayOfMonth of daysOfMonth) {
+      const day = Math.min(dayOfMonth, lastDay);
+      const date = new Date(year, month - 1, day);
+      dates.push(date.toISOString().slice(0, 10));
+    }
   }
   return dates;
 }
@@ -65,8 +83,6 @@ export function budgetStateToCsv(
 ): string {
   const incomeSourceName = (id: string | undefined) =>
     state.incomeSources.find((s) => s.id === id)?.name ?? "";
-  const expenseDestinationName = (id: string | undefined) =>
-    state.expenseDestinations.find((d) => d.id === id)?.name ?? "";
 
   const actualsByMonth = state.actualsByMonth ?? {};
   const rows: TransactionRow[] = [];
@@ -90,7 +106,7 @@ export function budgetStateToCsv(
   }
 
   for (const e of state.expenseEvents as ExpenseEvent[]) {
-    const source = expenseDestinationName(e.expenseDestinationId);
+    const source = "";
     const type = getExpenseCategoryLabel(e.category);
     for (const date of getDatesForSchedule(e.schedule, year)) {
       const monthKey = date.slice(0, 7); // "YYYY-MM"

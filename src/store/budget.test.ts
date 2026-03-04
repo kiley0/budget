@@ -5,9 +5,7 @@ import {
   addIncomeSource,
   addIncomeEvent,
   deleteIncomeSource,
-  addExpenseDestination,
   addExpenseEvent,
-  deleteExpenseDestination,
   deleteIncomeEvent,
   deleteExpenseEvent,
   setMonthActuals,
@@ -26,7 +24,6 @@ describe("replaceBudgetFromExport", () => {
     expect(state.budgetId).toBe(testBudgetId);
     expect(state.incomeSources).toEqual([]);
     expect(state.incomeEvents).toEqual([]);
-    expect(state.expenseDestinations).toEqual([]);
     expect(state.expenseEvents).toEqual([]);
   });
 
@@ -45,7 +42,6 @@ describe("replaceBudgetFromExport", () => {
         updatedAt: "2020-01-01",
         incomeSources: [],
         incomeEvents: [],
-        expenseDestinations: [],
         expenseEvents: [],
       },
       testBudgetId,
@@ -88,7 +84,7 @@ describe("replaceBudgetFromExport", () => {
     });
   });
 
-  it("imports expense destinations and events", () => {
+  it("imports expense events (destinations stripped by v3 migration)", () => {
     const exportData = {
       version: 1,
       updatedAt: "2026-03-01T00:00:00.000Z",
@@ -104,21 +100,19 @@ describe("replaceBudgetFromExport", () => {
           amount: 2000,
           expenseDestinationId: "exp-src-1",
           category: "rent",
-          schedule: { type: "recurring", dayOfMonth: 1 },
+          schedule: { type: "recurring", daysOfMonth: [1] },
         },
       ],
     };
     replaceBudgetFromExport(exportData, testBudgetId);
     const state = useBudgetStore.getState();
-    expect(state.expenseDestinations).toHaveLength(1);
-    expect(state.expenseDestinations[0].name).toBe("Landlord");
     expect(state.expenseEvents).toHaveLength(1);
     expect(state.expenseEvents[0].label).toBe("Rent");
     expect(state.expenseEvents[0].amount).toBe(2000);
     expect(state.expenseEvents[0].category).toBe("rent");
     expect(state.expenseEvents[0].schedule).toEqual({
       type: "recurring",
-      dayOfMonth: 1,
+      daysOfMonth: [1],
     });
   });
 
@@ -137,7 +131,6 @@ describe("replaceBudgetFromExport", () => {
     expect(state.version).toBe(1);
     expect(state.incomeSources).toEqual([]);
     expect(state.incomeEvents).toEqual([]);
-    expect(state.expenseDestinations).toEqual([]);
     expect(state.expenseEvents).toEqual([]);
   });
 });
@@ -165,22 +158,6 @@ describe("orphan cleanup on delete", () => {
     expect(state.incomeEvents[0].incomeSourceId).toBeUndefined();
   });
 
-  it("clears expenseDestinationId when deleting expense destination", () => {
-    addExpenseDestination("Landlord", "");
-    const destId = useBudgetStore.getState().expenseDestinations[0].id;
-    addExpenseEvent({
-      label: "Rent",
-      amount: 2000,
-      expenseDestinationId: destId,
-      schedule: { type: "recurring", dayOfMonth: 1 },
-    });
-    deleteExpenseDestination(destId);
-    const state = useBudgetStore.getState();
-    expect(state.expenseDestinations).toHaveLength(0);
-    expect(state.expenseEvents).toHaveLength(1);
-    expect(state.expenseEvents[0].expenseDestinationId).toBeUndefined();
-  });
-
   it("prunes actuals when deleting income event", () => {
     addIncomeSource("Job", "");
     addIncomeEvent({
@@ -203,11 +180,10 @@ describe("orphan cleanup on delete", () => {
   });
 
   it("prunes actuals when deleting expense event", () => {
-    addExpenseDestination("Landlord", "");
     addExpenseEvent({
       label: "Rent",
       amount: 2000,
-      schedule: { type: "recurring", dayOfMonth: 1 },
+      schedule: { type: "recurring", daysOfMonth: [1] },
     });
     const evId = useBudgetStore.getState().expenseEvents[0].id;
     setMonthActuals("2026-06", { actualExpenseByEventId: { [evId]: 2000 } });

@@ -3,8 +3,8 @@ import type {
   BudgetState,
   IncomeSource,
   IncomeEvent,
-  ExpenseDestination,
   ExpenseEvent,
+  ExpenseEventSchedule,
   MonthActuals,
   IncomeEventSchedule,
   StockSaleDetails,
@@ -15,7 +15,7 @@ import type {
  * Schema version for budget data. Increment when making breaking changes.
  * Used for self-healing: old budgets are migrated to current schema on load/import.
  */
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 /** Infer schema version from raw data shape (for data without explicit schemaVersion). */
 function inferSchemaVersion(o: Record<string, unknown>): number {
@@ -33,6 +33,28 @@ function generateId(): string {
   return crypto.randomUUID();
 }
 
+/** Parse days of month from unknown. Handles dayOfMonth, daysOfMonth, days_of_month. */
+function parseDaysOfMonth(o: Record<string, unknown>): number[] {
+  const days = o.daysOfMonth ?? o.days_of_month;
+  if (Array.isArray(days)) {
+    const nums = days
+      .map((d) => Number(d))
+      .filter(
+        (n) =>
+          !Number.isNaN(n) && n >= DAY_OF_MONTH_MIN && n <= DAY_OF_MONTH_MAX,
+      );
+    if (nums.length > 0) {
+      return [...new Set(nums)].sort((a, b) => a - b);
+    }
+  }
+  const day = Number(o.dayOfMonth ?? o.day_of_month ?? 1);
+  const d =
+    Number.isNaN(day) || day < DAY_OF_MONTH_MIN || day > DAY_OF_MONTH_MAX
+      ? DAY_OF_MONTH_MIN
+      : Math.round(day);
+  return [d];
+}
+
 /** Parse schedule from unknown. Handles snake_case (day_of_month, start_date, end_date). */
 function parseSchedule(s: unknown): IncomeEventSchedule {
   if (s && typeof s === "object") {
@@ -40,16 +62,11 @@ function parseSchedule(s: unknown): IncomeEventSchedule {
     const t = o.type;
     const recur = t === "recurring";
     if (recur) {
-      const day = Number(o.dayOfMonth ?? o.day_of_month ?? 1);
-      const d =
-        Number.isNaN(day) || day < DAY_OF_MONTH_MIN || day > DAY_OF_MONTH_MAX
-          ? DAY_OF_MONTH_MIN
-          : day;
       const start = o.startDate ?? o.start_date;
       const end = o.endDate ?? o.end_date;
       return {
         type: "recurring",
-        dayOfMonth: d,
+        daysOfMonth: parseDaysOfMonth(o),
         ...(typeof start === "string" &&
           start.trim() && { startDate: start.trim() }),
         ...(typeof end === "string" && end.trim() && { endDate: end.trim() }),
@@ -62,22 +79,27 @@ function parseSchedule(s: unknown): IncomeEventSchedule {
   return { type: "one-time", date: "2020-01-01" };
 }
 
-/** Parse income sources from array. */
-function parseIncomeSources(arr: unknown[]): IncomeSource[] {
-  return arr.map((item: unknown) => {
-    if (!item || typeof item !== "object")
-      return { id: generateId(), name: "", description: "" };
-    const x = item as Record<string, unknown>;
-    return {
-      id: typeof x.id === "string" && x.id ? x.id : generateId(),
-      name: String(x.name ?? ""),
-      description: String(x.description ?? ""),
-    };
-  });
+/** Parse expense schedule from unknown. Handles whole-month in addition to one-time and recurring. */
+function parseExpenseSchedule(s: unknown): ExpenseEventSchedule {
+  if (s && typeof s === "object") {
+    const o = s as Record<string, unknown>;
+    const t = o.type;
+    if (t === "whole-month") {
+      const start = o.startDate ?? o.start_date;
+      const end = o.endDate ?? o.end_date;
+      return {
+        type: "whole-month",
+        ...(typeof start === "string" &&
+          start.trim() && { startDate: start.trim() }),
+        ...(typeof end === "string" && end.trim() && { endDate: end.trim() }),
+      };
+    }
+  }
+  return parseSchedule(s) as ExpenseEventSchedule;
 }
 
-/** Parse expense destinations from array (v2 shape). */
-function parseExpenseDestinations(arr: unknown[]): ExpenseDestination[] {
+/** Parse income sources from array. */
+function parseIncomeSources(arr: unknown[]): IncomeSource[] {
   return arr.map((item: unknown) => {
     if (!item || typeof item !== "object")
       return { id: generateId(), name: "", description: "" };
@@ -166,7 +188,7 @@ function parseIncomeEvents(arr: unknown[]): IncomeEvent[] {
   });
 }
 
-/** Parse expense events from array, with expenseDestinationId (v2) or expenseSourceId (v1). */
+/** Parse expense events from array. Drops expenseDestinationId / expenseSourceId (removed in v3). */
 function parseExpenseEvents(arr: unknown[]): ExpenseEvent[] {
   return arr.map((item: unknown) => {
     if (!item || typeof item !== "object")
@@ -178,14 +200,12 @@ function parseExpenseEvents(arr: unknown[]): ExpenseEvent[] {
       };
     const x = item as Record<string, unknown>;
     const amount = Number(x.amount);
-    const destId = x.expenseDestinationId ?? x.expenseSourceId;
     return {
       id: typeof x.id === "string" && x.id ? x.id : generateId(),
       label: String(x.label ?? x.name ?? ""),
       amount: Number.isNaN(amount) || amount < 0 ? 0 : amount,
-      expenseDestinationId: typeof destId === "string" ? destId : undefined,
       category: typeof x.category === "string" ? x.category : undefined,
-      schedule: parseSchedule(x.schedule),
+      schedule: parseExpenseSchedule(x.schedule),
     };
   });
 }
@@ -254,6 +274,71 @@ function migrate1To2(data: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
+ * Migration v2 → v3: remove expense destinations. Drop expenseDestinations and expenseDestinationId.
+ */
+function migrate2To3(data: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...data };
+  delete out.expenseDestinations;
+  delete out.expenseSources;
+  if (Array.isArray(out.expenseEvents)) {
+    out.expenseEvents = (out.expenseEvents as Record<string, unknown>[]).map(
+      (e) => {
+        const ev = { ...e };
+        delete ev.expenseDestinationId;
+        delete ev.expenseSourceId;
+        return ev;
+      },
+    );
+  }
+  out.schemaVersion = 3;
+  return out;
+}
+
+/** Convert dayOfMonth to daysOfMonth in recurring schedules. */
+function convertScheduleDayToDays(s: unknown): unknown {
+  if (!s || typeof s !== "object") return s;
+  const o = s as Record<string, unknown>;
+  if (o.type !== "recurring") return s;
+  const days = o.daysOfMonth ?? o.days_of_month;
+  if (Array.isArray(days) && days.length > 0) return s;
+  const day = Number(o.dayOfMonth ?? o.day_of_month ?? 1);
+  const d =
+    Number.isNaN(day) || day < DAY_OF_MONTH_MIN || day > DAY_OF_MONTH_MAX
+      ? DAY_OF_MONTH_MIN
+      : Math.round(day);
+  const rest = { ...o };
+  delete rest.dayOfMonth;
+  delete rest.day_of_month;
+  delete rest.days_of_month;
+  return { ...rest, type: "recurring", daysOfMonth: [d] };
+}
+
+/**
+ * Migration v3 → v4: recurring dayOfMonth → daysOfMonth.
+ */
+function migrate3To4(data: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...data };
+  if (Array.isArray(out.incomeEvents)) {
+    out.incomeEvents = (out.incomeEvents as Record<string, unknown>[]).map(
+      (e) => ({
+        ...e,
+        schedule: convertScheduleDayToDays(e.schedule),
+      }),
+    );
+  }
+  if (Array.isArray(out.expenseEvents)) {
+    out.expenseEvents = (out.expenseEvents as Record<string, unknown>[]).map(
+      (e) => ({
+        ...e,
+        schedule: convertScheduleDayToDays(e.schedule),
+      }),
+    );
+  }
+  out.schemaVersion = 4;
+  return out;
+}
+
+/**
  * Migrate raw budget data to current schema. Preserves all data.
  * Call this for both import (JSON) and load (decrypted storage).
  */
@@ -267,7 +352,6 @@ export function migrateBudget(
     updatedAt: new Date().toISOString(),
     incomeSources: [],
     incomeEvents: [],
-    expenseDestinations: [],
     expenseEvents: [],
     actualsByMonth: {},
     schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -283,6 +367,12 @@ export function migrateBudget(
     if (schemaVersion === 1) {
       o = migrate1To2(o) as Record<string, unknown>;
       schemaVersion = 2;
+    } else if (schemaVersion === 2) {
+      o = migrate2To3(o) as Record<string, unknown>;
+      schemaVersion = 3;
+    } else if (schemaVersion === 3) {
+      o = migrate3To4(o) as Record<string, unknown>;
+      schemaVersion = 4;
     } else {
       break;
     }
@@ -290,10 +380,6 @@ export function migrateBudget(
 
   const incomeSources = Array.isArray(o.incomeSources)
     ? parseIncomeSources(o.incomeSources)
-    : [];
-  const destOrSrc = o.expenseDestinations ?? o.expenseSources;
-  const expenseDestinations = Array.isArray(destOrSrc)
-    ? parseExpenseDestinations(destOrSrc)
     : [];
   const incomeEvents = Array.isArray(o.incomeEvents)
     ? parseIncomeEvents(o.incomeEvents)
@@ -311,7 +397,6 @@ export function migrateBudget(
       typeof o.updatedAt === "string" ? o.updatedAt : new Date().toISOString(),
     incomeSources,
     incomeEvents,
-    expenseDestinations,
     expenseEvents,
     actualsByMonth:
       actualsByMonth && typeof actualsByMonth === "object"

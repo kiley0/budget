@@ -107,7 +107,7 @@ describe("budget storage", () => {
             id: "ev-1",
             label: "Rent",
             amount: 1500,
-            schedule: { type: "recurring", dayOfMonth: 1 },
+            schedule: { type: "recurring", daysOfMonth: [1] },
           },
         ],
       }));

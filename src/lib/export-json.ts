@@ -9,7 +9,6 @@ export interface BudgetExportData {
   schemaVersion?: number;
   incomeSources: BudgetState["incomeSources"];
   incomeEvents: BudgetState["incomeEvents"];
-  expenseDestinations: BudgetState["expenseDestinations"];
   expenseEvents: BudgetState["expenseEvents"];
   metadata?: BudgetMetadata;
 }
@@ -23,10 +22,9 @@ export function buildBudgetExportData(
     budgetId: state.budgetId,
     version: state.version,
     updatedAt: state.updatedAt,
-    schemaVersion: state.schemaVersion ?? 2,
+    schemaVersion: state.schemaVersion ?? 3,
     incomeSources: state.incomeSources,
     incomeEvents: state.incomeEvents,
-    expenseDestinations: state.expenseDestinations,
     expenseEvents: state.expenseEvents,
   };
   if (metadata && Object.keys(metadata).length > 0) {

@@ -41,18 +41,12 @@ export interface IncomeSource {
   description: string;
 }
 
-export interface ExpenseDestination {
-  /** UUID */
-  id: string;
-  name: string;
-  description: string;
-}
-
 export type IncomeEventSchedule =
   | { type: "one-time"; date: string }
   | {
       type: "recurring";
-      dayOfMonth: number;
+      /** One or more days of the month (1–31). Sorted, deduplicated. */
+      daysOfMonth: number[];
       startDate?: string;
       endDate?: string;
     };
@@ -103,7 +97,13 @@ export type ExpenseEventSchedule =
   | { type: "one-time"; date: string }
   | {
       type: "recurring";
-      dayOfMonth: number;
+      /** One or more days of the month (1–31). Sorted, deduplicated. */
+      daysOfMonth: number[];
+      startDate?: string;
+      endDate?: string;
+    }
+  | {
+      type: "whole-month";
       startDate?: string;
       endDate?: string;
     };
@@ -113,7 +113,6 @@ export interface ExpenseEvent {
   id: string;
   label: string;
   amount: number;
-  expenseDestinationId?: string;
   /** Category key from a predefined list (e.g. "rent", "groceries"). */
   category?: string;
   schedule: ExpenseEventSchedule;
@@ -133,7 +132,6 @@ export interface BudgetState {
   updatedAt: string;
   incomeSources: IncomeSource[];
   incomeEvents: IncomeEvent[];
-  expenseDestinations: ExpenseDestination[];
   expenseEvents: ExpenseEvent[];
   /** Actual income/expenses by month. Key: "YYYY-MM". */
   actualsByMonth?: Record<string, MonthActuals>;
@@ -149,7 +147,6 @@ function getDefaultState(budgetId: string): BudgetState {
     updatedAt: new Date().toISOString(),
     incomeSources: [],
     incomeEvents: [],
-    expenseDestinations: [],
     expenseEvents: [],
     actualsByMonth: {},
     schemaVersion: 2,
@@ -201,39 +198,6 @@ export function deleteIncomeSource(id: string): void {
     incomeSources: state.incomeSources.filter((source) => source.id !== id),
     incomeEvents: state.incomeEvents.map((ev) =>
       ev.incomeSourceId === id ? { ...ev, incomeSourceId: undefined } : ev,
-    ),
-  }));
-}
-
-export function addExpenseDestination(name: string, description: string): void {
-  useBudgetStore.setState((state) => ({
-    expenseDestinations: [
-      ...state.expenseDestinations,
-      { id: generateId(), name, description },
-    ],
-  }));
-}
-
-export function updateExpenseDestination(
-  id: string,
-  updates: { name?: string; description?: string },
-): void {
-  useBudgetStore.setState((state) => ({
-    expenseDestinations: state.expenseDestinations.map((dest) =>
-      dest.id === id ? { ...dest, ...updates } : dest,
-    ),
-  }));
-}
-
-export function deleteExpenseDestination(id: string): void {
-  useBudgetStore.setState((state) => ({
-    expenseDestinations: state.expenseDestinations.filter(
-      (dest) => dest.id !== id,
-    ),
-    expenseEvents: state.expenseEvents.map((ev) =>
-      ev.expenseDestinationId === id
-        ? { ...ev, expenseDestinationId: undefined }
-        : ev,
     ),
   }));
 }

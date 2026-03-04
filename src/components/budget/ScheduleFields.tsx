@@ -2,12 +2,16 @@
 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn } from "@/lib/utils";
 import { DAY_OF_MONTH_MIN, DAY_OF_MONTH_MAX } from "@/lib/constants";
 
+export type ScheduleType = "one-time" | "recurring" | "whole-month";
+
 export interface ScheduleFieldsProps {
-  scheduleType: "one-time" | "recurring";
-  onScheduleTypeChange: (v: "one-time" | "recurring") => void;
+  scheduleType: ScheduleType;
+  onScheduleTypeChange: (v: ScheduleType) => void;
+  /** Which schedule types to show. Default: one-time, recurring. Expense form may add "whole-month". */
+  scheduleTypes?: ScheduleType[];
   date: string;
   onDateChange: (v: string) => void;
   dayOfMonth: string;
@@ -18,6 +22,8 @@ export interface ScheduleFieldsProps {
   onRecurringEndDateChange: (v: string) => void;
   /** Unique prefix for form element ids (e.g. "event", "edit-event-123"). */
   idPrefix: string;
+  /** Optional. Default: "When". */
+  legend?: string;
   /** Optional. Default: "text-sm font-medium". Use "sr-only" for screen-reader-only legend. */
   legendClassName?: string;
   /** Optional. Default: "Schedule type". */
@@ -36,46 +42,108 @@ export function ScheduleFields({
   recurringEndDate,
   onRecurringEndDateChange,
   idPrefix,
+  legend = "When",
   legendClassName = "text-sm font-medium",
   ariaLabel = "Schedule type",
+  scheduleTypes = ["one-time", "recurring"],
 }: ScheduleFieldsProps) {
   const oneTimeId = `${idPrefix}-schedule-one-time`;
   const recurringId = `${idPrefix}-schedule-recurring`;
+  const wholeMonthId = `${idPrefix}-schedule-whole-month`;
   const dateId = `${idPrefix}-date`;
   const dayId = `${idPrefix}-day`;
   const startId = `${idPrefix}-recurring-start`;
   const endId = `${idPrefix}-recurring-end`;
 
+  const baseRadioStyles = cn(
+    "aspect-square size-4 shrink-0 appearance-none rounded-full border border-input text-primary shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+    "disabled:cursor-not-allowed disabled:opacity-50",
+  );
+  const radioName = `${idPrefix}-schedule-type`;
+  const checkedBg =
+    "radial-gradient(circle at center, var(--primary) 25%, transparent 26%)";
+
   return (
     <fieldset className="space-y-2">
-      <legend className={legendClassName}>When</legend>
-      <RadioGroup
-        value={scheduleType}
-        onValueChange={(v) =>
-          onScheduleTypeChange(v as "one-time" | "recurring")
-        }
-        className="flex gap-6"
+      <legend className={legendClassName}>{legend}</legend>
+      <div
+        role="radiogroup"
         aria-label={ariaLabel}
+        className="flex flex-col gap-2"
       >
-        <div className="flex items-center gap-2">
-          <RadioGroupItem value="one-time" id={oneTimeId} />
-          <Label
-            htmlFor={oneTimeId}
-            className="cursor-pointer text-sm font-normal"
-          >
-            Specific date
-          </Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <RadioGroupItem value="recurring" id={recurringId} />
-          <Label
-            htmlFor={recurringId}
-            className="cursor-pointer text-sm font-normal"
-          >
-            Recurring
-          </Label>
-        </div>
-      </RadioGroup>
+        {scheduleTypes.includes("one-time") && (
+          <div className="flex items-center gap-2">
+            <input
+              type="radio"
+              id={oneTimeId}
+              name={radioName}
+              value="one-time"
+              checked={scheduleType === "one-time"}
+              onChange={() => onScheduleTypeChange("one-time")}
+              tabIndex={0}
+              className={baseRadioStyles}
+              style={{
+                background:
+                  scheduleType === "one-time" ? checkedBg : "transparent",
+              }}
+            />
+            <Label
+              htmlFor={oneTimeId}
+              className="cursor-pointer text-sm font-normal"
+            >
+              Once on a specific date
+            </Label>
+          </div>
+        )}
+        {scheduleTypes.includes("recurring") && (
+          <div className="flex items-center gap-2">
+            <input
+              type="radio"
+              id={recurringId}
+              name={radioName}
+              value="recurring"
+              checked={scheduleType === "recurring"}
+              onChange={() => onScheduleTypeChange("recurring")}
+              tabIndex={0}
+              className={baseRadioStyles}
+              style={{
+                background:
+                  scheduleType === "recurring" ? checkedBg : "transparent",
+              }}
+            />
+            <Label
+              htmlFor={recurringId}
+              className="cursor-pointer text-sm font-normal"
+            >
+              Recurring each month on specific day(s)
+            </Label>
+          </div>
+        )}
+        {scheduleTypes.includes("whole-month") && (
+          <div className="flex items-center gap-2">
+            <input
+              type="radio"
+              id={wholeMonthId}
+              name={radioName}
+              value="whole-month"
+              checked={scheduleType === "whole-month"}
+              onChange={() => onScheduleTypeChange("whole-month")}
+              tabIndex={0}
+              className={baseRadioStyles}
+              style={{
+                background:
+                  scheduleType === "whole-month" ? checkedBg : "transparent",
+              }}
+            />
+            <Label
+              htmlFor={wholeMonthId}
+              className="cursor-pointer text-sm font-normal"
+            >
+              Over the course of the month
+            </Label>
+          </div>
+        )}
+      </div>
       {scheduleType === "one-time" && (
         <div className="mt-2">
           <Label htmlFor={dateId} className="sr-only">
@@ -90,49 +158,60 @@ export function ScheduleFields({
           />
         </div>
       )}
-      {scheduleType === "recurring" && (
+      {(scheduleType === "recurring" || scheduleType === "whole-month") && (
         <div className="mt-2 space-y-2">
-          <div className="space-y-2">
-            <Label htmlFor={dayId}>
-              Day of month ({DAY_OF_MONTH_MIN}–{DAY_OF_MONTH_MAX})
-            </Label>
-            <Input
-              id={dayId}
-              type="number"
-              min={DAY_OF_MONTH_MIN}
-              max={DAY_OF_MONTH_MAX}
-              value={dayOfMonth}
-              onChange={(e) => onDayOfMonthChange(e.target.value)}
-              placeholder={`e.g. ${DAY_OF_MONTH_MIN} or 15`}
-              required={scheduleType === "recurring"}
-            />
-          </div>
+          {scheduleType === "recurring" && (
+            <div className="space-y-2">
+              <Label htmlFor={dayId}>
+                Day(s) of month ({DAY_OF_MONTH_MIN}–{DAY_OF_MONTH_MAX})
+              </Label>
+              <Input
+                id={dayId}
+                type="text"
+                value={dayOfMonth}
+                onChange={(e) => onDayOfMonthChange(e.target.value)}
+                placeholder="e.g. 1 or 1, 15, 23"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter one or more days separated by commas (e.g. 1, 15, 23, 29)
+              </p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor={startId}>
-              Start date{" "}
+              Start month{" "}
               <span className="font-normal text-muted-foreground">
                 (optional)
               </span>
             </Label>
             <Input
               id={startId}
-              type="date"
-              value={recurringStartDate}
-              onChange={(e) => onRecurringStartDateChange(e.target.value)}
+              type="month"
+              value={
+                recurringStartDate.length >= 7
+                  ? recurringStartDate.slice(0, 7)
+                  : recurringStartDate || ""
+              }
+              onChange={(e) => onRecurringStartDateChange(e.target.value || "")}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor={endId}>
-              End date{" "}
+              End month{" "}
               <span className="font-normal text-muted-foreground">
                 (optional)
               </span>
             </Label>
             <Input
               id={endId}
-              type="date"
-              value={recurringEndDate}
-              onChange={(e) => onRecurringEndDateChange(e.target.value)}
+              type="month"
+              value={
+                recurringEndDate.length >= 7
+                  ? recurringEndDate.slice(0, 7)
+                  : recurringEndDate || ""
+              }
+              onChange={(e) => onRecurringEndDateChange(e.target.value || "")}
             />
           </div>
         </div>

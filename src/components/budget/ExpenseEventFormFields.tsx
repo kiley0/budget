@@ -11,22 +11,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EXPENSE_CATEGORIES } from "@/lib/constants";
-import type { ExpenseDestination } from "@/store/budget";
+import type { ScheduleType } from "./ScheduleFields";
 import { ScheduleFields } from "./ScheduleFields";
 
 export interface ExpenseEventFormFieldsProps {
   idPrefix: string;
-  destinations: ExpenseDestination[];
-  destinationId: string;
-  onDestinationIdChange: (v: string) => void;
   category: string;
   onCategoryChange: (v: string) => void;
   label: string;
   onLabelChange: (v: string) => void;
   amount: string;
   onAmountChange: (v: string) => void;
-  scheduleType: "one-time" | "recurring";
-  onScheduleTypeChange: (v: "one-time" | "recurring") => void;
+  scheduleType: ScheduleType;
+  onScheduleTypeChange: (v: ScheduleType) => void;
   date: string;
   onDateChange: (v: string) => void;
   dayOfMonth: string;
@@ -45,9 +42,6 @@ export interface ExpenseEventFormFieldsProps {
 
 export function ExpenseEventFormFields({
   idPrefix,
-  destinations,
-  destinationId,
-  onDestinationIdChange,
   category,
   onCategoryChange,
   label,
@@ -72,31 +66,6 @@ export function ExpenseEventFormFields({
 }: ExpenseEventFormFieldsProps) {
   return (
     <>
-      <div className="space-y-2">
-        <Label htmlFor={`${idPrefix}-destination`} className={labelClassName}>
-          Destination
-        </Label>
-        <Select
-          value={destinationId || selectNoneValue}
-          onValueChange={(v) =>
-            onDestinationIdChange(v === selectNoneValue ? "" : v)
-          }
-        >
-          <SelectTrigger id={`${idPrefix}-destination`} className="w-full">
-            <SelectValue placeholder="Select a destination" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={selectNoneValue}>
-              Select a destination
-            </SelectItem>
-            {destinations.map((dest) => (
-              <SelectItem key={dest.id} value={dest.id}>
-                {dest.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
       <div className="space-y-2">
         <Label htmlFor={`${idPrefix}-category`} className={labelClassName}>
           Category
@@ -149,6 +118,7 @@ export function ExpenseEventFormFields({
       <ScheduleFields
         scheduleType={scheduleType}
         onScheduleTypeChange={onScheduleTypeChange}
+        scheduleTypes={["one-time", "recurring", "whole-month"]}
         date={date}
         onDateChange={onDateChange}
         dayOfMonth={dayOfMonth}
@@ -158,6 +128,7 @@ export function ExpenseEventFormFields({
         recurringEndDate={recurringEndDate}
         onRecurringEndDateChange={onRecurringEndDateChange}
         idPrefix={idPrefix}
+        legend="When will this expense occur?"
         legendClassName={scheduleLegendClassName}
         ariaLabel={scheduleAriaLabel}
       />

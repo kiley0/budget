@@ -11,7 +11,6 @@ function emptyState(budgetId = "test-id"): BudgetState {
     updatedAt: new Date().toISOString(),
     incomeSources: [],
     incomeEvents: [],
-    expenseDestinations: [],
     expenseEvents: [],
   };
 }
@@ -25,11 +24,9 @@ describe("buildBudgetExportData", () => {
     expect(data).toHaveProperty("updatedAt");
     expect(data).toHaveProperty("incomeSources");
     expect(data).toHaveProperty("incomeEvents");
-    expect(data).toHaveProperty("expenseDestinations");
     expect(data).toHaveProperty("expenseEvents");
     expect(Array.isArray(data.incomeSources)).toBe(true);
     expect(Array.isArray(data.incomeEvents)).toBe(true);
-    expect(Array.isArray(data.expenseDestinations)).toBe(true);
     expect(Array.isArray(data.expenseEvents)).toBe(true);
   });
 
@@ -45,7 +42,7 @@ describe("buildBudgetExportData", () => {
           label: "Salary",
           amount: 5000,
           incomeSourceId: "s1",
-          schedule: { type: "recurring", dayOfMonth: 15 },
+          schedule: { type: "recurring", daysOfMonth: [15] },
         },
       ],
       expenseDestinations: [],
@@ -61,7 +58,7 @@ describe("buildBudgetExportData", () => {
     expect(data.incomeEvents[0].amount).toBe(5000);
     expect(data.incomeEvents[0].schedule).toEqual({
       type: "recurring",
-      dayOfMonth: 15,
+      daysOfMonth: [15],
     });
   });
 
@@ -112,11 +109,10 @@ describe("buildBudgetExportData round-trip with replaceBudgetFromExport", () => 
     expect(after.budgetId).toBe(testBudgetId);
     expect(after.incomeSources).toEqual([]);
     expect(after.incomeEvents).toEqual([]);
-    expect(after.expenseDestinations).toEqual([]);
     expect(after.expenseEvents).toEqual([]);
   });
 
-  it("round-trips state with income and expense destinations and events", () => {
+  it("round-trips state with income and expense events", () => {
     const state: BudgetState = {
       ...emptyState(testBudgetId),
       incomeSources: [{ id: "is1", name: "Employer", description: "Main job" }],
@@ -129,17 +125,13 @@ describe("buildBudgetExportData round-trip with replaceBudgetFromExport", () => 
           schedule: { type: "one-time", date: "2026-06-15" },
         },
       ],
-      expenseDestinations: [
-        { id: "es1", name: "Landlord", description: "Rent" },
-      ],
       expenseEvents: [
         {
           id: "ee1",
           label: "Rent",
           amount: 1800,
-          expenseDestinationId: "es1",
           category: "rent",
-          schedule: { type: "recurring", dayOfMonth: 1 },
+          schedule: { type: "recurring", daysOfMonth: [1] },
         },
       ],
     };
@@ -157,14 +149,12 @@ describe("buildBudgetExportData round-trip with replaceBudgetFromExport", () => 
       type: "one-time",
       date: "2026-06-15",
     });
-    expect(after.expenseDestinations).toHaveLength(1);
-    expect(after.expenseDestinations[0].name).toBe("Landlord");
     expect(after.expenseEvents).toHaveLength(1);
     expect(after.expenseEvents[0].label).toBe("Rent");
     expect(after.expenseEvents[0].category).toBe("rent");
     expect(after.expenseEvents[0].schedule).toEqual({
       type: "recurring",
-      dayOfMonth: 1,
+      daysOfMonth: [1],
     });
   });
 
@@ -179,13 +169,12 @@ describe("buildBudgetExportData round-trip with replaceBudgetFromExport", () => 
           amount: 2000,
           schedule: {
             type: "recurring",
-            dayOfMonth: 10,
+            daysOfMonth: [10],
             startDate: "2026-03-01",
             endDate: "2026-08-31",
           },
         },
       ],
-      expenseDestinations: [],
       expenseEvents: [],
     };
     const data = buildBudgetExportData(state);
@@ -193,7 +182,7 @@ describe("buildBudgetExportData round-trip with replaceBudgetFromExport", () => 
     const after = useBudgetStore.getState();
     expect(after.incomeEvents[0].schedule).toEqual({
       type: "recurring",
-      dayOfMonth: 10,
+      daysOfMonth: [10],
       startDate: "2026-03-01",
       endDate: "2026-08-31",
     });

@@ -1,0 +1,25 @@
+# Build and dependencies
+node_modules/
+.next/
+out/
+build/
+
+# Lock files and generated
+*.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Large or binary assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.webp
+*.woff
+*.woff2
+
+# Environment secrets (never send to AI)
+.env
+.env.*

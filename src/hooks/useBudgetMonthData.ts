@@ -28,9 +28,14 @@ export function useBudgetMonthData(months: MonthSlot[]) {
       return filterEventsForMonth(expenseEvents, year, month);
     }
 
+    const eventAmountMult = (e: IncomeEvent) =>
+      e.schedule.type === "recurring" ? e.schedule.daysOfMonth.length : 1;
     const getYearlyTotalIncome = () =>
       Array.from({ length: months.length }, (_, i) =>
-        getEventsForMonth(i).reduce((sum, e) => sum + e.amount, 0),
+        getEventsForMonth(i).reduce(
+          (sum, e) => sum + e.amount * eventAmountMult(e),
+          0,
+        ),
       ).reduce((a, b) => a + b, 0);
 
     const getYearlyTotalGrossIncome = () =>
@@ -40,13 +45,18 @@ export function useBudgetMonthData(months: MonthSlot[]) {
             e.paycheckDetails != null
               ? e.paycheckDetails.grossAmount
               : e.amount;
-          return sum + gross;
+          return sum + gross * eventAmountMult(e);
         }, 0),
       ).reduce((a, b) => a + b, 0);
 
+    const expenseAmountMult = (e: ExpenseEvent) =>
+      e.schedule.type === "recurring" ? e.schedule.daysOfMonth.length : 1;
     const getYearlyTotalExpenses = () =>
       Array.from({ length: months.length }, (_, i) =>
-        getExpenseEventsForMonth(i).reduce((sum, e) => sum + e.amount, 0),
+        getExpenseEventsForMonth(i).reduce(
+          (sum, e) => sum + e.amount * expenseAmountMult(e),
+          0,
+        ),
       ).reduce((a, b) => a + b, 0);
 
     const getYearlyTotalSavings = () => {
@@ -60,7 +70,7 @@ export function useBudgetMonthData(months: MonthSlot[]) {
       const expenseSavings = Array.from({ length: months.length }, (_, i) =>
         getExpenseEventsForMonth(i)
           .filter((e) => e.category === SAVINGS_CATEGORY)
-          .reduce((sum, e) => sum + e.amount, 0),
+          .reduce((sum, e) => sum + e.amount * expenseAmountMult(e), 0),
       ).reduce((a, b) => a + b, 0);
       return incomeSavings + expenseSavings;
     };
@@ -69,7 +79,7 @@ export function useBudgetMonthData(months: MonthSlot[]) {
       Array.from({ length: months.length }, (_, i) =>
         getExpenseEventsForMonth(i)
           .filter((e) => e.category === DEBT_REPAYMENT_CATEGORY)
-          .reduce((sum, e) => sum + e.amount, 0),
+          .reduce((sum, e) => sum + e.amount * expenseAmountMult(e), 0),
       ).reduce((a, b) => a + b, 0);
 
     return {

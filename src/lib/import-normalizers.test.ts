@@ -8,7 +8,6 @@ describe("normalizeImportedBudget", () => {
     expect(fromNull.version).toBe(1);
     expect(fromNull.incomeSources).toEqual([]);
     expect(fromNull.incomeEvents).toEqual([]);
-    expect(fromNull.expenseDestinations).toEqual([]);
     expect(fromNull.expenseEvents).toEqual([]);
 
     expect(normalizeImportedBudget("string").budgetId).toBe("");
@@ -30,7 +29,6 @@ describe("normalizeImportedBudget", () => {
           schedule: { type: "one-time", date: "2026-03-15" },
         },
       ],
-      expenseDestinations: [],
       expenseEvents: [],
     };
     const result = normalizeImportedBudget(raw);
@@ -66,13 +64,12 @@ describe("normalizeImportedBudget", () => {
           schedule: { type: "recurring", day_of_month: 25 },
         },
       ],
-      expenseDestinations: [],
       expenseEvents: [],
     };
     const result = normalizeImportedBudget(raw);
     expect(result.incomeEvents[0].schedule).toEqual({
       type: "recurring",
-      dayOfMonth: 25,
+      daysOfMonth: [25],
     });
   });
 
@@ -89,19 +86,18 @@ describe("normalizeImportedBudget", () => {
           amount: 500,
           schedule: {
             type: "recurring",
-            dayOfMonth: 1,
+            daysOfMonth: [1],
             start_date: "2025-06-01",
             end_date: "2025-12-31",
           },
         },
       ],
-      expenseDestinations: [],
       expenseEvents: [],
     };
     const result = normalizeImportedBudget(raw);
     expect(result.incomeEvents[0].schedule).toEqual({
       type: "recurring",
-      dayOfMonth: 1,
+      daysOfMonth: [1],
       startDate: "2025-06-01",
       endDate: "2025-12-31",
     });
@@ -127,7 +123,6 @@ describe("normalizeImportedBudget", () => {
           schedule: { type: "one_time", date: "2026-07-20" },
         },
       ],
-      expenseDestinations: [],
       expenseEvents: [],
     };
     const result = normalizeImportedBudget(raw);
@@ -166,10 +161,9 @@ describe("normalizeImportedBudget", () => {
           id: "recurring-invalid-day",
           label: "Bad day",
           amount: 10,
-          schedule: { type: "recurring", dayOfMonth: 0 },
+          schedule: { type: "recurring", daysOfMonth: [0] },
         },
       ],
-      expenseDestinations: [],
       expenseEvents: [],
     };
     const result = normalizeImportedBudget(raw);
@@ -185,11 +179,11 @@ describe("normalizeImportedBudget", () => {
     expect(result.incomeEvents[3].label).toBe("Bad day");
     expect(result.incomeEvents[3].schedule).toEqual({
       type: "recurring",
-      dayOfMonth: 1,
+      daysOfMonth: [1],
     });
   });
 
-  it("normalizes expense destinations and events with category", () => {
+  it("normalizes expense events with category and strips expenseDestinationId", () => {
     const raw = {
       budgetId: "",
       version: 1,
@@ -204,20 +198,19 @@ describe("normalizeImportedBudget", () => {
           amount: 2000,
           expenseDestinationId: "es-1",
           category: "rent",
-          schedule: { type: "recurring", dayOfMonth: 1 },
+          schedule: { type: "recurring", daysOfMonth: [1] },
         },
       ],
     };
     const result = normalizeImportedBudget(raw);
-    expect(result.expenseDestinations).toHaveLength(1);
-    expect(result.expenseDestinations[0].name).toBe("Landlord");
     expect(result.expenseEvents).toHaveLength(1);
     expect(result.expenseEvents[0].label).toBe("Rent");
     expect(result.expenseEvents[0].category).toBe("rent");
     expect(result.expenseEvents[0].schedule).toEqual({
       type: "recurring",
-      dayOfMonth: 1,
+      daysOfMonth: [1],
     });
+    expect("expenseDestinationId" in result.expenseEvents[0]).toBe(false);
   });
 
   it("clamps invalid version to 1 and uses default updatedAt when missing", () => {
@@ -226,7 +219,6 @@ describe("normalizeImportedBudget", () => {
       version: 0,
       incomeSources: [],
       incomeEvents: [],
-      expenseDestinations: [],
       expenseEvents: [],
     };
     const result = normalizeImportedBudget(raw);

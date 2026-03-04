@@ -72,9 +72,13 @@ export function filterEventsForMonth<T extends HasSchedule>(
   month: number,
 ): T[] {
   return events.filter((event) => {
-    if (event.schedule.type === "one-time") {
-      return isOneTimeEventInMonth(event.schedule.date, year, month);
+    const s = event.schedule;
+    if (s.type === "one-time") {
+      return isOneTimeEventInMonth(s.date, year, month);
     }
-    return isRecurringEventInMonth(event.schedule, year, month);
+    if (s.type === "whole-month") {
+      return isRecurringEventInMonth(s, year, month);
+    }
+    return isRecurringEventInMonth(s, year, month);
   });
 }

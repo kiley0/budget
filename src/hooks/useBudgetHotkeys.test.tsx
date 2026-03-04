@@ -55,7 +55,6 @@ const emptyDialogState = {
 
 const defaultDeps = {
   incomeSourcesCount: 1,
-  expenseDestinationsCount: 1,
   dateViewMode: "next-12-months",
 };
 
@@ -159,30 +158,15 @@ describe("useBudgetHotkeys", () => {
     expect(callbacks.setIncomeModalOpen).toHaveBeenCalledWith(true);
   });
 
-  it("opens add expense dialog on E when expense destinations exist", () => {
+  it("opens add expense dialog on E", () => {
     const callbacks = createMockCallbacks();
-    render(
-      <TestHost callbacks={callbacks} deps={{ expenseDestinationsCount: 2 }} />,
-    );
+    render(<TestHost callbacks={callbacks} />);
 
     act(() => {
       fireKeyDown({ key: "e" });
     });
 
     expect(callbacks.setAddExpenseEventDialogOpen).toHaveBeenCalledWith(true);
-  });
-
-  it("does not open add expense dialog on E when no expense destinations", () => {
-    const callbacks = createMockCallbacks();
-    render(
-      <TestHost callbacks={callbacks} deps={{ expenseDestinationsCount: 0 }} />,
-    );
-
-    act(() => {
-      fireKeyDown({ key: "e" });
-    });
-
-    expect(callbacks.setAddExpenseEventDialogOpen).not.toHaveBeenCalled();
   });
 
   it("opens expense modal on Cmd+E", () => {

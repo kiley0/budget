@@ -19,9 +19,6 @@ import {
   addIncomeSource,
   updateIncomeSource,
   deleteIncomeSource,
-  addExpenseDestination,
-  updateExpenseDestination,
-  deleteExpenseDestination,
   addIncomeEvent,
   updateIncomeEvent,
   deleteIncomeEvent,
@@ -79,7 +76,6 @@ import { useBudgetHotkeys } from "@/hooks/useBudgetHotkeys";
 import { useStockPriceFetch } from "@/hooks/useStockPriceFetch";
 import { useSyncVersionPolling } from "@/hooks/useSyncVersionPolling";
 import {
-  AddExpenseDestinationDialog,
   AddIncomeSourceDialog,
   BudgetCommandPalette,
   BudgetDebugSection,
@@ -137,20 +133,13 @@ export default function BudgetPage() {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
 
-  const [addExpenseDestinationDialogOpen, setAddExpenseDestinationDialogOpen] =
-    useState(false);
-  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
-  const [editExpenseName, setEditExpenseName] = useState("");
-  const [editExpenseDescription, setEditExpenseDescription] = useState("");
-
   const [addExpenseEventDialogOpen, setAddExpenseEventDialogOpen] =
     useState(false);
   const [expEventName, setExpEventName] = useState("");
   const [expEventAmount, setExpEventAmount] = useState("");
-  const [expEventDestinationId, setExpEventDestinationId] = useState("");
   const [expEventCategory, setExpEventCategory] = useState("");
   const [expEventScheduleType, setExpEventScheduleType] = useState<
-    "one-time" | "recurring"
+    "one-time" | "recurring" | "whole-month"
   >("one-time");
   const [expEventDate, setExpEventDate] = useState("");
   const [expEventDayOfMonth, setExpEventDayOfMonth] = useState("");
@@ -162,11 +151,9 @@ export default function BudgetPage() {
   >(null);
   const [editExpEventName, setEditExpEventName] = useState("");
   const [editExpEventAmount, setEditExpEventAmount] = useState("");
-  const [editExpEventDestinationId, setEditExpEventDestinationId] =
-    useState("");
   const [editExpEventCategory, setEditExpEventCategory] = useState("");
   const [editExpEventScheduleType, setEditExpEventScheduleType] = useState<
-    "one-time" | "recurring"
+    "one-time" | "recurring" | "whole-month"
   >("one-time");
   const [editExpEventDate, setEditExpEventDate] = useState("");
   const [editExpEventDayOfMonth, setEditExpEventDayOfMonth] = useState("");
@@ -254,18 +241,14 @@ export default function BudgetPage() {
   const [budgetName, setBudgetName] = useState("");
   const [editingBudgetTitle, setEditingBudgetTitle] = useState(false);
   const [blankStateDismissed, setBlankStateDismissed] = useState(false);
-  const [onboardingStep, setOnboardingStep] = useState<1 | 2 | 3 | 4 | "done">(
-    1,
-  );
+  const [onboardingStep, setOnboardingStep] = useState<1 | 2 | 3 | "done">(1);
 
   const incomeSources = useBudgetStore((s) => s.incomeSources);
   const incomeEvents = useBudgetStore((s) => s.incomeEvents);
-  const expenseDestinations = useBudgetStore((s) => s.expenseDestinations);
   const expenseEvents = useBudgetStore((s) => s.expenseEvents);
 
   const isBudgetEmpty =
     incomeSources.length === 0 &&
-    expenseDestinations.length === 0 &&
     incomeEvents.length === 0 &&
     expenseEvents.length === 0;
   /** Show blank state when budget is empty OR user is mid-onboarding (steps 2–done). */
@@ -293,8 +276,7 @@ export default function BudgetPage() {
     getYearlyTotalSavings,
     getYearlyTotalDebtRepayment,
   } = useBudgetMonthData(dateViewMonths);
-  const { getIncomeSourceName, getExpenseDestinationName } =
-    useBudgetSourceNames();
+  const { getIncomeSourceName } = useBudgetSourceNames();
   const actualsByMonth = useBudgetStore((s) => s.actualsByMonth ?? {});
   const yearlySummaryData = useMemo(
     () =>
@@ -304,7 +286,6 @@ export default function BudgetPage() {
         dateViewMonths,
         actualsByMonth,
         incomeSources,
-        expenseDestinations,
       ),
     [
       incomeEvents,
@@ -312,9 +293,78 @@ export default function BudgetPage() {
       dateViewMonths,
       actualsByMonth,
       incomeSources,
-      expenseDestinations,
     ],
   );
+
+  function handleEventScheduleTypeChange(
+    v: "one-time" | "recurring" | "whole-month",
+  ) {
+    if (v !== "one-time" && v !== "recurring") return;
+    if (v === "recurring") {
+      const year = new Date().getFullYear();
+      const jan = `${year}-01`;
+      const dec = `${year}-12`;
+      setEventRecurringStartDate((prev) =>
+        !prev || prev.length < 7 ? jan : prev,
+      );
+      setEventRecurringEndDate((prev) =>
+        !prev || prev.length < 7 ? dec : prev,
+      );
+    }
+    setEventScheduleType(v);
+  }
+
+  function handleEditEventScheduleTypeChange(
+    v: "one-time" | "recurring" | "whole-month",
+  ) {
+    if (v !== "one-time" && v !== "recurring") return;
+    if (v === "recurring") {
+      const year = new Date().getFullYear();
+      const jan = `${year}-01`;
+      const dec = `${year}-12`;
+      setEditEventRecurringStartDate((prev) =>
+        !prev || prev.length < 7 ? jan : prev,
+      );
+      setEditEventRecurringEndDate((prev) =>
+        !prev || prev.length < 7 ? dec : prev,
+      );
+    }
+    setEditEventScheduleType(v);
+  }
+
+  function handleExpEventScheduleTypeChange(
+    v: "one-time" | "recurring" | "whole-month",
+  ) {
+    if (v === "whole-month" || v === "recurring") {
+      const year = new Date().getFullYear();
+      const jan = `${year}-01`;
+      const dec = `${year}-12`;
+      setExpEventRecurringStartDate((prev) =>
+        !prev || prev.length < 7 ? jan : prev,
+      );
+      setExpEventRecurringEndDate((prev) =>
+        !prev || prev.length < 7 ? dec : prev,
+      );
+    }
+    setExpEventScheduleType(v);
+  }
+
+  function handleEditExpEventScheduleTypeChange(
+    v: "one-time" | "recurring" | "whole-month",
+  ) {
+    if (v === "whole-month" || v === "recurring") {
+      const year = new Date().getFullYear();
+      const jan = `${year}-01`;
+      const dec = `${year}-12`;
+      setEditExpEventRecurringStartDate((prev) =>
+        !prev || prev.length < 7 ? jan : prev,
+      );
+      setEditExpEventRecurringEndDate((prev) =>
+        !prev || prev.length < 7 ? dec : prev,
+      );
+    }
+    setEditExpEventScheduleType(v);
+  }
 
   function handleAddExpenseEvent(e: React.FormEvent) {
     e.preventDefault();
@@ -322,7 +372,6 @@ export default function BudgetPage() {
     if (!name) return;
     const amount = parseCurrency(expEventAmount);
     if (Number.isNaN(amount) || amount < 0) return;
-    if (!expEventDestinationId) return;
     const schedule = buildExpenseScheduleFromForm(
       expEventScheduleType,
       expEventDate,
@@ -334,16 +383,11 @@ export default function BudgetPage() {
     addExpenseEvent({
       label: name,
       amount,
-      expenseDestinationId: expEventDestinationId,
       category: expEventCategory || undefined,
       schedule,
     });
-    useSessionStore
-      .getState()
-      .setLastUsedExpenseDestinationId(expEventDestinationId);
     setExpEventName("");
     setExpEventAmount("");
-    setExpEventDestinationId("");
     setExpEventCategory("");
     setExpEventDate("");
     setExpEventDayOfMonth("");
@@ -361,7 +405,6 @@ export default function BudgetPage() {
     setEditingExpenseEventId(event.id);
     setEditExpEventName(event.label);
     setEditExpEventAmount(String(event.amount));
-    setEditExpEventDestinationId(event.expenseDestinationId ?? "");
     setEditExpEventCategory(event.category ?? "");
     setEditExpEventScheduleType(event.schedule.type);
     setEditExpEventDate(
@@ -369,19 +412,15 @@ export default function BudgetPage() {
     );
     setEditExpEventDayOfMonth(
       event.schedule.type === "recurring"
-        ? String(event.schedule.dayOfMonth)
+        ? event.schedule.daysOfMonth.join(", ")
         : "",
     );
+    const s = event.schedule;
+    const hasStartEnd = s.type === "recurring" || s.type === "whole-month";
     setEditExpEventRecurringStartDate(
-      event.schedule.type === "recurring" && event.schedule.startDate
-        ? event.schedule.startDate
-        : "",
+      hasStartEnd && s.startDate ? s.startDate : "",
     );
-    setEditExpEventRecurringEndDate(
-      event.schedule.type === "recurring" && event.schedule.endDate
-        ? event.schedule.endDate
-        : "",
-    );
+    setEditExpEventRecurringEndDate(hasStartEnd && s.endDate ? s.endDate : "");
   }
 
   function cancelEditingExpenseEvent() {
@@ -389,7 +428,6 @@ export default function BudgetPage() {
     setEditExpenseEventDialogOpen(false);
     setEditExpEventName("");
     setEditExpEventAmount("");
-    setEditExpEventDestinationId("");
     setEditExpEventCategory("");
     setEditExpEventDate("");
     setEditExpEventDayOfMonth("");
@@ -415,7 +453,6 @@ export default function BudgetPage() {
     updateExpenseEvent(editingExpenseEventId, {
       label: name,
       amount,
-      expenseDestinationId: editExpEventDestinationId || undefined,
       category: editExpEventCategory || undefined,
       schedule,
     });
@@ -425,39 +462,6 @@ export default function BudgetPage() {
   function handleDeleteExpenseEvent(id: string) {
     deleteExpenseEvent(id);
     if (editingExpenseEventId === id) cancelEditingExpenseEvent();
-  }
-
-  function startEditingExpense(source: {
-    id: string;
-    name: string;
-    description: string;
-  }) {
-    setEditingExpenseId(source.id);
-    setEditExpenseName(source.name);
-    setEditExpenseDescription(source.description);
-  }
-
-  function cancelEditingExpense() {
-    setEditingExpenseId(null);
-    setEditExpenseName("");
-    setEditExpenseDescription("");
-  }
-
-  function handleSaveExpenseEdit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editingExpenseId) return;
-    const name = editExpenseName.trim();
-    if (!name) return;
-    updateExpenseDestination(editingExpenseId, {
-      name,
-      description: editExpenseDescription.trim(),
-    });
-    cancelEditingExpense();
-  }
-
-  function handleDeleteExpense(id: string) {
-    deleteExpenseDestination(id);
-    if (editingExpenseId === id) cancelEditingExpense();
   }
 
   function startEditing(source: {
@@ -626,7 +630,7 @@ export default function BudgetPage() {
     );
     setEditEventDayOfMonth(
       event.schedule.type === "recurring"
-        ? String(event.schedule.dayOfMonth)
+        ? event.schedule.daysOfMonth.join(", ")
         : "",
     );
     setEditEventRecurringStartDate(
@@ -797,11 +801,7 @@ export default function BudgetPage() {
         label: "Add expected income",
         disabled: incomeSources.length === 0,
       },
-      {
-        value: "add-expense",
-        label: "Add expected expense",
-        disabled: expenseDestinations.length === 0,
-      },
+      { value: "add-expense", label: "Add expected expense" },
       { value: "manage-income", label: "Manage income" },
       { value: "manage-expenses", label: "Manage expenses" },
       { value: "yearly-summary", label: "Yearly summary" },
@@ -811,7 +811,7 @@ export default function BudgetPage() {
         label: `Jump to ${formatMonthLabel(slot)}`,
       })),
     ],
-    [dateViewMonths, incomeSources.length, expenseDestinations.length],
+    [dateViewMonths, incomeSources.length],
   );
 
   function executeCommand(value: string) {
@@ -848,7 +848,7 @@ export default function BudgetPage() {
     } else if (value === "add-income") {
       if (incomeSources.length > 0) setAddEventDialogOpen(true);
     } else if (value === "add-expense") {
-      if (expenseDestinations.length > 0) setAddExpenseEventDialogOpen(true);
+      setAddExpenseEventDialogOpen(true);
     } else if (value === "manage-income") {
       setIncomeModalOpen(true);
     } else if (value === "manage-expenses") {
@@ -988,26 +988,49 @@ export default function BudgetPage() {
       } else {
         setEventDate((prev) => prev || minDate);
       }
+      if (eventScheduleType === "recurring") {
+        const year = new Date().getFullYear();
+        setEventRecurringStartDate((prev) =>
+          !prev || prev.length < 7 ? `${year}-01` : prev,
+        );
+        setEventRecurringEndDate((prev) =>
+          !prev || prev.length < 7 ? `${year}-12` : prev,
+        );
+      }
     }
-  }, [addEventDialogOpen, incomeSources, minDate, addIncomeDefaultDate]);
+  }, [
+    addEventDialogOpen,
+    incomeSources,
+    minDate,
+    addIncomeDefaultDate,
+    eventScheduleType,
+  ]);
 
   useEffect(() => {
-    if (addExpenseEventDialogOpen && expenseDestinations.length > 0) {
-      const lastUsed = useSessionStore.getState().lastUsedExpenseDestinationId;
-      if (lastUsed && expenseDestinations.some((s) => s.id === lastUsed)) {
-        setExpEventDestinationId(lastUsed);
-      }
+    if (addExpenseEventDialogOpen) {
       if (addExpenseDefaultDate) {
         setExpEventDate(addExpenseDefaultDate);
       } else {
         setExpEventDate((prev) => prev || minDate);
       }
+      if (
+        expEventScheduleType === "whole-month" ||
+        expEventScheduleType === "recurring"
+      ) {
+        const year = new Date().getFullYear();
+        setExpEventRecurringStartDate((prev) =>
+          !prev || prev.length < 7 ? `${year}-01` : prev,
+        );
+        setExpEventRecurringEndDate((prev) =>
+          !prev || prev.length < 7 ? `${year}-12` : prev,
+        );
+      }
     }
   }, [
     addExpenseEventDialogOpen,
-    expenseDestinations,
     minDate,
     addExpenseDefaultDate,
+    expEventScheduleType,
   ]);
 
   useEffect(() => {
@@ -1034,7 +1057,6 @@ export default function BudgetPage() {
       editIncomeEventDialogOpen,
       editExpenseEventDialogOpen,
       addSourceDialogOpen,
-      addExpenseDestinationDialogOpen,
       newerVersionDialogOpen,
       showBlankState,
     },
@@ -1051,7 +1073,6 @@ export default function BudgetPage() {
     },
     {
       incomeSourcesCount: incomeSources.length,
-      expenseDestinationsCount: expenseDestinations.length,
       dateViewMode,
     },
   );
@@ -1841,7 +1862,7 @@ export default function BudgetPage() {
                                                     editEventScheduleType
                                                   }
                                                   onScheduleTypeChange={
-                                                    setEditEventScheduleType
+                                                    handleEditEventScheduleTypeChange
                                                   }
                                                   date={editEventDate}
                                                   onDateChange={
@@ -2066,7 +2087,7 @@ export default function BudgetPage() {
                         amount={eventAmount}
                         onAmountChange={setEventAmount}
                         scheduleType={eventScheduleType}
-                        onScheduleTypeChange={setEventScheduleType}
+                        onScheduleTypeChange={handleEventScheduleTypeChange}
                         date={eventDate}
                         onDateChange={setEventDate}
                         dayOfMonth={eventDayOfMonth}
@@ -2092,86 +2113,49 @@ export default function BudgetPage() {
                 </DialogContent>
               </Dialog>
 
-              <AddExpenseDestinationDialog
-                open={addExpenseDestinationDialogOpen}
-                onOpenChange={setAddExpenseDestinationDialogOpen}
-                onAdd={(name, description) =>
-                  addExpenseDestination(name, description)
-                }
-              />
-
               <Dialog
                 open={addExpenseEventDialogOpen}
                 onOpenChange={(open) => !open && closeAddExpenseEventDialog()}
               >
-                <DialogContent
-                  className="sm:max-w-md"
-                  aria-describedby={
-                    expenseDestinations.length === 0
-                      ? "add-expense-event-dialog-desc"
-                      : undefined
-                  }
-                >
+                <DialogContent className="sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Add expected expense</DialogTitle>
-                    {expenseDestinations.length === 0 && (
-                      <DialogDescription id="add-expense-event-dialog-desc">
-                        Add at least one destination before creating an expected
-                        expense.
-                      </DialogDescription>
-                    )}
                   </DialogHeader>
-                  {expenseDestinations.length === 0 ? (
-                    <DialogFooter className="mt-4">
+                  <form
+                    onSubmit={handleAddExpenseEvent}
+                    className="mt-4 space-y-3"
+                  >
+                    <ExpenseEventFormFields
+                      idPrefix="exp-event"
+                      category={expEventCategory}
+                      onCategoryChange={setExpEventCategory}
+                      label={expEventName}
+                      onLabelChange={setExpEventName}
+                      amount={expEventAmount}
+                      onAmountChange={setExpEventAmount}
+                      scheduleType={expEventScheduleType}
+                      onScheduleTypeChange={handleExpEventScheduleTypeChange}
+                      date={expEventDate}
+                      onDateChange={setExpEventDate}
+                      dayOfMonth={expEventDayOfMonth}
+                      onDayOfMonthChange={setExpEventDayOfMonth}
+                      recurringStartDate={expEventRecurringStartDate}
+                      onRecurringStartDateChange={setExpEventRecurringStartDate}
+                      recurringEndDate={expEventRecurringEndDate}
+                      onRecurringEndDateChange={setExpEventRecurringEndDate}
+                      selectNoneValue={SELECT_NONE}
+                    />
+                    <DialogFooter className="gap-2 pt-2 sm:justify-end">
                       <Button
+                        type="button"
                         variant="outline"
                         onClick={closeAddExpenseEventDialog}
                       >
-                        Close
+                        Cancel
                       </Button>
+                      <Button type="submit">Add expected expense</Button>
                     </DialogFooter>
-                  ) : (
-                    <form
-                      onSubmit={handleAddExpenseEvent}
-                      className="mt-4 space-y-3"
-                    >
-                      <ExpenseEventFormFields
-                        idPrefix="exp-event"
-                        destinations={expenseDestinations}
-                        destinationId={expEventDestinationId}
-                        onDestinationIdChange={setExpEventDestinationId}
-                        category={expEventCategory}
-                        onCategoryChange={setExpEventCategory}
-                        label={expEventName}
-                        onLabelChange={setExpEventName}
-                        amount={expEventAmount}
-                        onAmountChange={setExpEventAmount}
-                        scheduleType={expEventScheduleType}
-                        onScheduleTypeChange={setExpEventScheduleType}
-                        date={expEventDate}
-                        onDateChange={setExpEventDate}
-                        dayOfMonth={expEventDayOfMonth}
-                        onDayOfMonthChange={setExpEventDayOfMonth}
-                        recurringStartDate={expEventRecurringStartDate}
-                        onRecurringStartDateChange={
-                          setExpEventRecurringStartDate
-                        }
-                        recurringEndDate={expEventRecurringEndDate}
-                        onRecurringEndDateChange={setExpEventRecurringEndDate}
-                        selectNoneValue={SELECT_NONE}
-                      />
-                      <DialogFooter className="gap-2 pt-2 sm:justify-end">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={closeAddExpenseEventDialog}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit">Add expected expense</Button>
-                      </DialogFooter>
-                    </form>
-                  )}
+                  </form>
                 </DialogContent>
               </Dialog>
 
@@ -2188,132 +2172,6 @@ export default function BudgetPage() {
                       <div>
                         <div className="flex items-center justify-between gap-2">
                           <h3 className="text-base font-semibold text-foreground">
-                            Destinations
-                          </h3>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setExpenseModalOpen(false);
-                              setAddExpenseDestinationDialogOpen(true);
-                            }}
-                          >
-                            Add expense destination
-                          </Button>
-                        </div>
-                        {expenseDestinations.length > 0 ? (
-                          <ul className="mt-2 list-none space-y-2">
-                            {expenseDestinations.map((dest) => (
-                              <li key={dest.id}>
-                                <Card className="bg-muted/50 px-4 py-3">
-                                  <CardContent className="p-0">
-                                    {editingExpenseId === dest.id ? (
-                                      <form
-                                        onSubmit={handleSaveExpenseEdit}
-                                        className="space-y-3"
-                                      >
-                                        <div className="space-y-2">
-                                          <Label
-                                            htmlFor={`edit-expense-name-${dest.id}`}
-                                            className="sr-only"
-                                          >
-                                            Name
-                                          </Label>
-                                          <Input
-                                            id={`edit-expense-name-${dest.id}`}
-                                            type="text"
-                                            value={editExpenseName}
-                                            onChange={(e) =>
-                                              setEditExpenseName(e.target.value)
-                                            }
-                                            placeholder="Name"
-                                            required
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label
-                                            htmlFor={`edit-expense-desc-${dest.id}`}
-                                            className="sr-only"
-                                          >
-                                            Description
-                                          </Label>
-                                          <Textarea
-                                            id={`edit-expense-desc-${dest.id}`}
-                                            value={editExpenseDescription}
-                                            onChange={(e) =>
-                                              setEditExpenseDescription(
-                                                e.target.value,
-                                              )
-                                            }
-                                            rows={2}
-                                            placeholder="Description"
-                                          />
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                          <Button type="submit" size="sm">
-                                            Save
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={cancelEditingExpense}
-                                          >
-                                            Cancel
-                                          </Button>
-                                        </div>
-                                      </form>
-                                    ) : (
-                                      <>
-                                        <p className="font-medium text-foreground">
-                                          {dest.name}
-                                        </p>
-                                        {dest.description ? (
-                                          <p className="mt-1 text-sm text-muted-foreground">
-                                            {dest.description}
-                                          </p>
-                                        ) : null}
-                                        <div className="mt-3 flex gap-2">
-                                          <Button
-                                            type="button"
-                                            variant="link"
-                                            size="sm"
-                                            className="h-auto p-0 text-primary"
-                                            onClick={() =>
-                                              startEditingExpense(dest)
-                                            }
-                                          >
-                                            Edit
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="link"
-                                            size="sm"
-                                            className="h-auto p-0 text-destructive hover:text-destructive/90"
-                                            onClick={() =>
-                                              handleDeleteExpense(dest.id)
-                                            }
-                                          >
-                                            Delete
-                                          </Button>
-                                        </div>
-                                      </>
-                                    )}
-                                  </CardContent>
-                                </Card>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="mt-2 text-sm text-muted-foreground">
-                            No expense destinations yet.
-                          </p>
-                        )}
-                      </div>
-                      <div className="mt-6">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="text-base font-semibold text-foreground">
                             Expected expenses
                           </h3>
                           <Button
@@ -2324,7 +2182,6 @@ export default function BudgetPage() {
                               setExpenseModalOpen(false);
                               setAddExpenseEventDialogOpen(true);
                             }}
-                            disabled={expenseDestinations.length === 0}
                           >
                             Add expected expense
                           </Button>
@@ -2332,6 +2189,12 @@ export default function BudgetPage() {
                         {expenseEvents.length > 0 ? (
                           <>
                             {[
+                              {
+                                label: "Monthly total",
+                                events: expenseEvents.filter(
+                                  (e) => e.schedule.type === "whole-month",
+                                ),
+                              },
                               {
                                 label: "Recurring",
                                 events: expenseEvents.filter(
@@ -2366,15 +2229,6 @@ export default function BudgetPage() {
                                               >
                                                 <ExpenseEventFormFields
                                                   idPrefix={`edit-exp-event-${event.id}`}
-                                                  destinations={
-                                                    expenseDestinations
-                                                  }
-                                                  destinationId={
-                                                    editExpEventDestinationId
-                                                  }
-                                                  onDestinationIdChange={
-                                                    setEditExpEventDestinationId
-                                                  }
                                                   category={
                                                     editExpEventCategory
                                                   }
@@ -2393,7 +2247,7 @@ export default function BudgetPage() {
                                                     editExpEventScheduleType
                                                   }
                                                   onScheduleTypeChange={
-                                                    setEditExpEventScheduleType
+                                                    handleEditExpEventScheduleTypeChange
                                                   }
                                                   date={editExpEventDate}
                                                   onDateChange={
@@ -2458,10 +2312,6 @@ export default function BudgetPage() {
                                                   ·{" "}
                                                   {formatExpenseSchedule(
                                                     event.schedule,
-                                                  )}{" "}
-                                                  ·{" "}
-                                                  {getExpenseDestinationName(
-                                                    event.expenseDestinationId,
                                                   )}{" "}
                                                   ·{" "}
                                                   {getExpenseCategoryLabel(
@@ -2575,7 +2425,7 @@ export default function BudgetPage() {
                         amount={editEventAmount}
                         onAmountChange={setEditEventAmount}
                         scheduleType={editEventScheduleType}
-                        onScheduleTypeChange={setEditEventScheduleType}
+                        onScheduleTypeChange={handleEditEventScheduleTypeChange}
                         date={editEventDate}
                         onDateChange={setEditEventDate}
                         dayOfMonth={editEventDayOfMonth}
@@ -2620,9 +2470,6 @@ export default function BudgetPage() {
                     >
                       <ExpenseEventFormFields
                         idPrefix={`edit-dialog-exp-${editingExpenseEventId}`}
-                        destinations={expenseDestinations}
-                        destinationId={editExpEventDestinationId}
-                        onDestinationIdChange={setEditExpEventDestinationId}
                         category={editExpEventCategory}
                         onCategoryChange={setEditExpEventCategory}
                         label={editExpEventName}
@@ -2681,7 +2528,7 @@ export default function BudgetPage() {
                   setAddExpenseEventDialogOpen(true);
                 }}
                 addIncomeDisabled={incomeSources.length === 0}
-                addExpenseDisabled={expenseDestinations.length === 0}
+                addExpenseDisabled={false}
               />
 
               {/* Debug section: only on localhost or after Cmd+Shift+D / Ctrl+Shift+D */}

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   formatDayOrdinal,
+  formatDayForDisplay,
   formatIncomeSchedule,
   formatExpenseSchedule,
   getDayForSort,
@@ -33,14 +34,14 @@ describe("formatIncomeSchedule", () => {
     expect(r).not.toMatch(/\s6,/);
   });
   it("formats recurring day of month", () => {
-    expect(formatIncomeSchedule({ type: "recurring", dayOfMonth: 11 })).toBe(
+    expect(formatIncomeSchedule({ type: "recurring", daysOfMonth: [11] })).toBe(
       "11th of each month",
     );
   });
   it("formats recurring with startDate/endDate using local date (timezone-safe)", () => {
     const r = formatIncomeSchedule({
       type: "recurring",
-      dayOfMonth: 15,
+      daysOfMonth: [15],
       startDate: "2026-01-01",
       endDate: "2026-12-31",
     });
@@ -62,9 +63,32 @@ describe("formatExpenseSchedule", () => {
     expect(r).not.toMatch(/\s6,/);
   });
   it("formats recurring", () => {
-    expect(formatExpenseSchedule({ type: "recurring", dayOfMonth: 1 })).toBe(
+    expect(formatExpenseSchedule({ type: "recurring", daysOfMonth: [1] })).toBe(
       "1st of each month",
     );
+  });
+  it("formats recurring with multiple days", () => {
+    expect(
+      formatExpenseSchedule({
+        type: "recurring",
+        daysOfMonth: [1, 15, 23, 29],
+      }),
+    ).toBe("1st, 15th, 23rd, 29th of each month");
+  });
+  it("formats whole-month", () => {
+    expect(formatExpenseSchedule({ type: "whole-month" })).toBe(
+      "Total for the month",
+    );
+  });
+  it("formats whole-month with startDate and endDate", () => {
+    const r = formatExpenseSchedule({
+      type: "whole-month",
+      startDate: "2025-01-01",
+      endDate: "2025-12-31",
+    });
+    expect(r).toMatch(/Total for the month/);
+    expect(r).toMatch(/Jan.*2025/);
+    expect(r).toMatch(/Dec.*2025/);
   });
 });
 
@@ -110,9 +134,48 @@ describe("getDayForSort", () => {
       id: "1",
       label: "Rent",
       amount: 2000,
-      schedule: { type: "recurring", dayOfMonth: 1 },
+      schedule: { type: "recurring", daysOfMonth: [1] },
     };
     expect(getDayForSort(event)).toBe(1);
+  });
+  it("returns 0 for whole-month schedule", () => {
+    const event: ExpenseEvent = {
+      id: "1",
+      label: "Groceries",
+      amount: 800,
+      schedule: { type: "whole-month" },
+    };
+    expect(getDayForSort(event)).toBe(0);
+  });
+});
+
+describe("formatDayForDisplay", () => {
+  it("returns Monthly for whole-month expense", () => {
+    const event: ExpenseEvent = {
+      id: "1",
+      label: "Groceries",
+      amount: 800,
+      schedule: { type: "whole-month" },
+    };
+    expect(formatDayForDisplay(event)).toBe("Monthly");
+  });
+  it("returns ordinals for recurring with multiple days", () => {
+    const event: ExpenseEvent = {
+      id: "1",
+      label: "Twice monthly",
+      amount: 100,
+      schedule: { type: "recurring", daysOfMonth: [1, 15] },
+    };
+    expect(formatDayForDisplay(event)).toBe("1st, 15th");
+  });
+  it("returns ordinal for recurring expense", () => {
+    const event: ExpenseEvent = {
+      id: "1",
+      label: "Rent",
+      amount: 2000,
+      schedule: { type: "recurring", daysOfMonth: [15] },
+    };
+    expect(formatDayForDisplay(event)).toBe("15th");
   });
 });
 
@@ -123,21 +186,23 @@ describe("sortEventsByDayThenAmount", () => {
         id: "a",
         label: "Late",
         amount: 100,
-        schedule: { type: "recurring", dayOfMonth: 25 },
+        schedule: { type: "recurring", daysOfMonth: [25] },
       },
       {
         id: "b",
         label: "Early",
         amount: 200,
-        schedule: { type: "recurring", dayOfMonth: 5 },
+        schedule: { type: "recurring", daysOfMonth: [5] },
       },
     ];
     const sorted = sortEventsByDayThenAmount(events);
     expect(
-      sorted[0].schedule.type === "recurring" && sorted[0].schedule.dayOfMonth,
+      sorted[0].schedule.type === "recurring" &&
+        sorted[0].schedule.daysOfMonth[0],
     ).toBe(5);
     expect(
-      sorted[1].schedule.type === "recurring" && sorted[1].schedule.dayOfMonth,
+      sorted[1].schedule.type === "recurring" &&
+        sorted[1].schedule.daysOfMonth[0],
     ).toBe(25);
   });
   it("sorts by amount (largest first) when same day", () => {
@@ -146,18 +211,37 @@ describe("sortEventsByDayThenAmount", () => {
         id: "a",
         label: "Small",
         amount: 100,
-        schedule: { type: "recurring", dayOfMonth: 15 },
+        schedule: { type: "recurring", daysOfMonth: [15] },
       },
       {
         id: "b",
         label: "Large",
         amount: 500,
-        schedule: { type: "recurring", dayOfMonth: 15 },
+        schedule: { type: "recurring", daysOfMonth: [15] },
       },
     ];
     const sorted = sortEventsByDayThenAmount(events);
     expect(sorted[0].amount).toBe(500);
     expect(sorted[1].amount).toBe(100);
+  });
+  it("sorts whole-month (day 0) before other days", () => {
+    const events: ExpenseEvent[] = [
+      {
+        id: "a",
+        label: "Rent",
+        amount: 2000,
+        schedule: { type: "recurring", daysOfMonth: [1] },
+      },
+      {
+        id: "b",
+        label: "Groceries",
+        amount: 800,
+        schedule: { type: "whole-month" },
+      },
+    ];
+    const sorted = sortEventsByDayThenAmount(events);
+    expect(sorted[0].label).toBe("Groceries");
+    expect(sorted[1].label).toBe("Rent");
   });
   it("sorts by day first, then amount for mixed", () => {
     const events: IncomeEvent[] = [
@@ -165,24 +249,25 @@ describe("sortEventsByDayThenAmount", () => {
         id: "1",
         label: "A",
         amount: 50,
-        schedule: { type: "recurring", dayOfMonth: 10 },
+        schedule: { type: "recurring", daysOfMonth: [10] },
       },
       {
         id: "2",
         label: "B",
         amount: 200,
-        schedule: { type: "recurring", dayOfMonth: 10 },
+        schedule: { type: "recurring", daysOfMonth: [10] },
       },
       {
         id: "3",
         label: "C",
         amount: 100,
-        schedule: { type: "recurring", dayOfMonth: 5 },
+        schedule: { type: "recurring", daysOfMonth: [5] },
       },
     ];
     const sorted = sortEventsByDayThenAmount(events);
     expect(
-      sorted[0].schedule.type === "recurring" && sorted[0].schedule.dayOfMonth,
+      sorted[0].schedule.type === "recurring" &&
+        sorted[0].schedule.daysOfMonth[0],
     ).toBe(5);
     expect(sorted[0].amount).toBe(100);
     expect(sorted[1].amount).toBe(200);
@@ -220,13 +305,13 @@ describe("sortEventsByDayThenAmount", () => {
         id: "1",
         label: "A",
         amount: 100,
-        schedule: { type: "recurring", dayOfMonth: 2 },
+        schedule: { type: "recurring", daysOfMonth: [2] },
       },
       {
         id: "2",
         label: "B",
         amount: 50,
-        schedule: { type: "recurring", dayOfMonth: 1 },
+        schedule: { type: "recurring", daysOfMonth: [1] },
       },
     ];
     const copy = [...events];

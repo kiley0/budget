@@ -7,10 +7,7 @@ interface SessionState {
   isUnlocked: () => boolean;
   /** Last selected income source in add expected income modal (in-memory only). */
   lastUsedIncomeSourceId: string | null;
-  /** Last selected expense destination in add expected expense modal (in-memory only). */
-  lastUsedExpenseDestinationId: string | null;
   setLastUsedIncomeSourceId: (id: string | null) => void;
-  setLastUsedExpenseDestinationId: (id: string | null) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -19,8 +16,5 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   clearKey: () => set({ key: null }),
   isUnlocked: () => get().key != null,
   lastUsedIncomeSourceId: null,
-  lastUsedExpenseDestinationId: null,
   setLastUsedIncomeSourceId: (id) => set({ lastUsedIncomeSourceId: id }),
-  setLastUsedExpenseDestinationId: (id) =>
-    set({ lastUsedExpenseDestinationId: id }),
 }));

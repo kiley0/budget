@@ -1,0 +1,18 @@
+---
+description: TypeScript and React conventions
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# TypeScript & React Conventions
+
+- Use path alias `@/` for imports (e.g. `@/lib/constants`, `@/components/budget`)
+- Prefer functional components; extract logic to custom hooks
+- Colocate types with modules; export interfaces/types used elsewhere
+- Use Zod for form validation with react-hook-form + @hookform/resolvers
+- Run `npm run typecheck` and `npm run lint` before completing changes
+
+## Store & data flow
+
+- Zustand stores in `src/store/`; avoid importing store in `lib/` (keep lib pure)
+- Budget CRUD and load/save live in `budget.ts`; session/key state in `session.ts`

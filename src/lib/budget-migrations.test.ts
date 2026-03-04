@@ -13,7 +13,7 @@ describe("migrateBudget", () => {
     expect(migrateBudget(42, testBudgetId).incomeEvents).toEqual([]);
   });
 
-  it("migrates v1 (expenseSources) to v2 (expenseDestinations)", () => {
+  it("migrates v1 through v2 to v3, stripping expense destinations", () => {
     const v1Data = {
       budgetId: "old",
       version: 1,
@@ -33,14 +33,13 @@ describe("migrateBudget", () => {
     };
     const result = migrateBudget(v1Data, testBudgetId);
     expect(result.budgetId).toBe(testBudgetId);
-    expect(result.expenseDestinations).toHaveLength(1);
-    expect(result.expenseDestinations[0]).toEqual({
-      id: "es-1",
-      name: "Landlord",
-      description: "Rent",
-    });
     expect(result.expenseEvents).toHaveLength(1);
-    expect(result.expenseEvents[0].expenseDestinationId).toBe("es-1");
+    expect(result.expenseEvents[0].label).toBe("Rent");
+    expect(result.expenseEvents[0].amount).toBe(2000);
+    expect(
+      (result.expenseEvents[0] as unknown as Record<string, unknown>)
+        .expenseDestinationId,
+    ).toBeUndefined();
     expect(
       (result.expenseEvents[0] as unknown as Record<string, unknown>)
         .expenseSourceId,
@@ -62,7 +61,6 @@ describe("migrateBudget", () => {
           schedule: { type: "one-time", date: "2024-06-15" },
         },
       ],
-      expenseDestinations: [],
       expenseEvents: [],
       actualsByMonth: {
         "2024-06": {
@@ -97,13 +95,12 @@ describe("migrateBudget", () => {
           },
         },
       ],
-      expenseDestinations: [],
       expenseEvents: [],
     };
     const result = migrateBudget(withSnakeCase, testBudgetId);
     expect(result.incomeEvents[0].schedule).toEqual({
       type: "recurring",
-      dayOfMonth: 15,
+      daysOfMonth: [15],
       startDate: "2024-01-01",
       endDate: "2025-12-31",
     });
