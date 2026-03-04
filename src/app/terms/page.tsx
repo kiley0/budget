@@ -8,7 +8,7 @@ export default function TermsOfServicePage() {
           href="/"
           className="text-sm text-muted-foreground underline hover:text-foreground"
         >
-          ← Back to Budget Forecaster
+          ← Back to Sunrise Budget
         </Link>
         <h1 className="mt-8 text-3xl font-bold text-foreground">
           Terms of Service
@@ -23,7 +23,7 @@ export default function TermsOfServicePage() {
             </h2>
             <p>
               These Terms of Service (&quot;Terms&quot;) govern your use of
-              Budget Forecaster (&quot;Service&quot;). By using the Service, you
+              Sunrise Budget (&quot;Service&quot;). By using the Service, you
               agree to these Terms. If you do not agree, do not use the Service.
             </p>
           </section>
@@ -32,7 +32,7 @@ export default function TermsOfServicePage() {
               2. What the Service Is
             </h2>
             <p>
-              Budget Forecaster is a web-based tool that lets you create and
+              Sunrise Budget is a web-based tool that lets you create and
               edit a budget by entering expected income and expenses (e.g.
               recurring or one-time), view summaries by month and year, export
               or import your budget data, and optionally sync encrypted data to
@@ -190,7 +190,14 @@ export default function TermsOfServicePage() {
             </h2>
             <p>
               For questions about these Terms, contact the operator through the
-              means provided on the Budget Forecaster website.
+              means provided at{" "}
+              <a
+                href="https://sunrisebudget.com"
+                className="underline hover:text-foreground"
+              >
+                sunrisebudget.com
+              </a>
+              .
             </p>
           </section>
         </div>

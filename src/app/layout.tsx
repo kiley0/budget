@@ -6,9 +6,16 @@ import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
 
+const SITE_URL = "https://sunrisebudget.com";
+
 export const metadata: Metadata = {
-  title: "Budget Forecaster",
-  description: "Personal budget app",
+  metadataBase: new URL(SITE_URL),
+  title: "Sunrise Budget",
+  description: "The fastest way to forecast your income and expenses",
+  openGraph: {
+    url: SITE_URL,
+    siteName: "Sunrise Budget",
+  },
 };
 
 export default function RootLayout({

@@ -1,4 +1,4 @@
-# Budget Forecaster
+# Sunrise Budget
 
 The fastest way to forecast your income and expenses. Quickly create a budget for the year with month-by-month views—like a profit-and-loss statement—and securely share it with your partner or financial planner. Built with privacy, accessibility, keyboard hotkeys, and speed in mind.
 
@@ -24,7 +24,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3421](http://localhost:3421). Use "Get started" to create a passphrase and open your budget.
+**Local:** Open [http://localhost:3421](http://localhost:3421). **Production:** [https://sunrisebudget.com](https://sunrisebudget.com). Use "Get started" to create a passphrase and open your budget.
 
 **Scripts:** `npm run build` / `npm run start` (port 3421), `npm run lint`, `npm run typecheck`, `npm run check-all`, `npm run format`, `npm run test` / `npm run test:run`.
 

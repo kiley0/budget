@@ -33,7 +33,7 @@ export function BudgetHeader({
       <div className="flex items-center justify-between px-6 py-4">
         <span className="flex items-center gap-2 text-xl font-semibold text-foreground">
           <Sunrise className="size-6 shrink-0" aria-hidden />
-          Budget Forecaster
+          Sunrise Budget
         </span>
         <div className="flex items-center gap-2">
           <input

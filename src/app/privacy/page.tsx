@@ -8,7 +8,7 @@ export default function PrivacyPolicyPage() {
           href="/"
           className="text-sm text-muted-foreground underline hover:text-foreground"
         >
-          ← Back to Budget Forecaster
+          ← Back to Sunrise Budget
         </Link>
         <h1 className="mt-8 text-3xl font-bold text-foreground">
           Privacy Policy
@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
               1. Introduction
             </h2>
             <p>
-              This Privacy Policy describes how Budget Forecaster
+              This Privacy Policy describes how Sunrise Budget
               (&quot;we,&quot; &quot;our,&quot; or the &quot;Service&quot;)
               handles information when you use our web-based budgeting tool. We
               do not collect your name, email, or account information. Your
@@ -213,8 +213,14 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p>
               For privacy-related questions or to exercise your rights, contact
-              the operator through the means provided on the Budget Forecaster
-              website.
+              the operator through the means provided at{" "}
+              <a
+                href="https://sunrisebudget.com"
+                className="underline hover:text-foreground"
+              >
+                sunrisebudget.com
+              </a>
+              .
             </p>
           </section>
         </div>

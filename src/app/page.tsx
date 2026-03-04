@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, CalendarClock, Shield, Users } from "lucide-react";
+import { BarChart3, CalendarClock, Shield, Sunrise, Users } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
@@ -190,8 +190,9 @@ export default function Home() {
       {/* Hero */}
       <section className="flex flex-1 w-full flex-col items-center px-6 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
         <div className="flex w-full max-w-3xl flex-col items-center text-center">
-          <span className="text-sm font-medium text-accent dark:text-primary">
-            Plan together
+          <span className="flex items-center justify-center gap-2 text-sm font-medium text-accent dark:text-primary">
+            <Sunrise className="size-5 shrink-0" aria-hidden />
+            Sunrise Budget
           </span>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             The fastest way to forecast your income and expenses
