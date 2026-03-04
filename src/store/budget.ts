@@ -1,20 +1,27 @@
 import { create } from "zustand";
 import {
-  encrypt,
   decrypt,
-  prepareSyncPayload,
+  deriveKey,
   stripSaltForDecrypt,
   persistKeyToSession,
   importKeyFromSession,
+  decryptSyncPayloadWithPassphrase,
+  isPortableFormat,
 } from "@/lib/crypto";
+import {
+  serializeAndPreparePayloads,
+  persistToStoresInOrder,
+  createDefaultPersistenceAdapters,
+} from "@/lib/budget-persistence";
 import { migrateBudget } from "@/lib/budget-migrations";
-import { debounce } from "@/lib/debounce";
+import { debounceLeadingTrailing } from "@/lib/debounce";
 import {
   ENCRYPTED_STORAGE_KEY_PREFIX,
   SESSION_DECRYPTED_KEY_PREFIX,
   BUDGET_ID_STORAGE_KEY,
   getBudgetMetadata,
   setBudgetMetadata,
+  isNewerVersionCooldownActive,
 } from "@/lib/constants";
 import { toast } from "sonner";
 import { useSessionStore } from "./session";
@@ -362,6 +369,12 @@ async function getKey(): Promise<CryptoKey | null> {
 
 const SYNC_API = "/api/sync";
 
+const defaultAdapters = createDefaultPersistenceAdapters({
+  syncApiUrl: SYNC_API,
+  onSyncError: () =>
+    toast.error("Saved locally, but sync failed. Check your connection."),
+});
+
 /** Fetch encrypted blob from sync by budgetId. Returns null if 404 or empty. */
 export async function fetchEncryptedFromSync(
   budgetId: string,
@@ -378,8 +391,37 @@ export async function fetchEncryptedFromSync(
   }
 }
 
+/** Returns true if remote updatedAt is strictly greater than local. Invalid timestamps are treated as not newer. */
+export function isRemoteNewer(
+  remoteUpdatedAt: string,
+  localUpdatedAt: string,
+): boolean {
+  const remoteTime = new Date(remoteUpdatedAt).getTime();
+  const localTime = new Date(localUpdatedAt).getTime();
+  if (!Number.isFinite(remoteTime) || !Number.isFinite(localTime)) return false;
+  return remoteTime > localTime;
+}
+
+/** Fetch sync metadata (updatedAt) for version comparison. Returns null if 404 or unavailable. */
+export async function fetchSyncMetadata(
+  budgetId: string,
+): Promise<{ updatedAt: string } | null> {
+  try {
+    const res = await fetch(
+      `${SYNC_API}?budgetId=${encodeURIComponent(budgetId)}&meta=1`,
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const updatedAt = json?.updatedAt;
+    return typeof updatedAt === "string" ? { updatedAt } : null;
+  } catch {
+    return null;
+  }
+}
+
 export type LoadBudgetResult =
   | { ok: true }
+  | { ok: true; newerVersionAvailable: true }
   | { ok: false; reason: "no_key" | "decrypt_failed" };
 
 /** Load budget for the given budgetId: prefer sessionStorage (decrypted, no passphrase on reload), then localStorage/sync. */
@@ -411,6 +453,16 @@ export async function loadBudget(budgetId: string): Promise<LoadBudgetResult> {
           lastAccessed: now,
           createdAt: meta.createdAt ?? now,
         });
+        // Check if a newer version exists in Vercel Blob
+        if (!isNewerVersionCooldownActive(budgetId)) {
+          const remoteMeta = await fetchSyncMetadata(budgetId);
+          if (
+            remoteMeta?.updatedAt &&
+            isRemoteNewer(remoteMeta.updatedAt, migrated.updatedAt)
+          ) {
+            return { ok: true, newerVersionAvailable: true };
+          }
+        }
         return { ok: true };
       } catch {
         sessionStorage.removeItem(sessionDecryptedKey);
@@ -470,6 +522,16 @@ export async function loadBudget(budgetId: string): Promise<LoadBudgetResult> {
       return { ok: true };
     }
     useBudgetStore.setState(migrated);
+    // Check if a newer version exists in Vercel Blob (slow path)
+    if (!isNewerVersionCooldownActive(budgetId)) {
+      const remoteMeta = await fetchSyncMetadata(budgetId);
+      if (
+        remoteMeta?.updatedAt &&
+        isRemoteNewer(remoteMeta.updatedAt, migrated.updatedAt)
+      ) {
+        return { ok: true, newerVersionAvailable: true };
+      }
+    }
     return { ok: true };
   } catch {
     useBudgetStore.setState(defaultForBudget);
@@ -478,36 +540,64 @@ export async function loadBudget(budgetId: string): Promise<LoadBudgetResult> {
   }
 }
 
-/** Save current budget to localStorage (encrypted), sessionStorage (decrypted), and push to sync. */
+/**
+ * Load the remote version from Vercel Blob using passphrase and apply it.
+ * Call when user confirms they want to update to a newer version.
+ */
+export async function loadRemoteVersionAndApply(
+  budgetId: string,
+  passphrase: string,
+): Promise<{ ok: true } | { ok: false; reason: "decrypt_failed" }> {
+  const raw = await fetchEncryptedFromSync(budgetId);
+  if (!raw) return { ok: false, reason: "decrypt_failed" };
+  try {
+    let decrypted: string;
+    let key: CryptoKey;
+    if (isPortableFormat(raw)) {
+      const result = await decryptSyncPayloadWithPassphrase(raw, passphrase);
+      decrypted = result.plaintext;
+      key = result.key;
+    } else {
+      key = await deriveKey(passphrase);
+      try {
+        decrypted = await decrypt(raw, key);
+      } catch {
+        decrypted = await decrypt(stripSaltForDecrypt(raw), key);
+      }
+    }
+    useSessionStore.getState().setKey(key);
+    await persistKeyToSession(key);
+    const parsed = JSON.parse(decrypted) as unknown;
+    const migrated = migrateBudget(parsed, budgetId);
+    useBudgetStore.setState(migrated);
+    await saveBudget();
+    localStorage.setItem(BUDGET_ID_STORAGE_KEY, budgetId);
+    const now = new Date().toISOString();
+    const meta = getBudgetMetadata(budgetId);
+    setBudgetMetadata(budgetId, {
+      lastAccessed: now,
+      createdAt: meta.createdAt ?? now,
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "decrypt_failed" };
+  }
+}
+
+/** Save current budget in order: sessionStorage (decrypted), localStorage (encrypted), Vercel Blob. */
 export async function saveBudget(): Promise<void> {
   const key = await getKey();
   if (!key) return;
   if (typeof window === "undefined") return;
   const state = useBudgetStore.getState();
   if (!state.budgetId) return;
-  const toSave = { ...state, updatedAt: new Date().toISOString() };
-  const plaintext = JSON.stringify(toSave);
-  const payload = await encrypt(plaintext, key);
-  const storageKey = `${ENCRYPTED_STORAGE_KEY_PREFIX}${state.budgetId}`;
-  const sessionDecryptedKey = `${SESSION_DECRYPTED_KEY_PREFIX}${state.budgetId}`;
-  localStorage.setItem(storageKey, payload);
-  sessionStorage.setItem(sessionDecryptedKey, plaintext);
-  await persistKeyToSession(key);
-  const syncPayload = prepareSyncPayload(payload);
-  try {
-    await fetch(SYNC_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ budgetId: state.budgetId, data: syncPayload }),
-    });
-  } catch {
-    toast.error("Saved locally, but sync failed. Check your connection.");
-  }
+
+  const payloads = await serializeAndPreparePayloads(state, key);
+  await persistToStoresInOrder(state.budgetId, payloads, defaultAdapters, key);
 }
 
-// Persist to encrypted localStorage and sync whenever state changes.
-// Debounce 400ms to avoid save storms from rapid edits; coalesces multiple changes into one save.
-const debouncedSave = debounce(saveBudget, 400);
+// Persist whenever state changes. First change saves immediately; rapid edits coalesce into one save after 400ms.
+const debouncedSave = debounceLeadingTrailing(saveBudget, 400);
 useBudgetStore.subscribe(() => {
   debouncedSave();
 });

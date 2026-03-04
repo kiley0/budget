@@ -13,6 +13,8 @@ import {
   getBudgetMetadata,
   parseMetadataFromExport,
   setBudgetMetadata,
+  setNewerVersionCooldown,
+  isNewerVersionCooldownActive,
 } from "./constants";
 
 describe("getExpenseCategoryLabel", () => {
@@ -173,6 +175,71 @@ describe("getBudgetMetadata / setBudgetMetadata", () => {
       name: "My Budget",
     });
     vi.unstubAllGlobals();
+  });
+});
+
+describe("setNewerVersionCooldown / isNewerVersionCooldownActive", () => {
+  it("returns false when no cooldown is set", () => {
+    const store: Record<string, string> = {};
+    const mockSessionStorage = {
+      getItem: (k: string) => store[k] ?? null,
+      setItem: (k: string, v: string) => {
+        store[k] = v;
+      },
+    };
+    vi.stubGlobal("sessionStorage", mockSessionStorage);
+    vi.stubGlobal("window", { sessionStorage: mockSessionStorage });
+    try {
+      expect(isNewerVersionCooldownActive("budget-1")).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("returns true immediately after setting cooldown", () => {
+    const store: Record<string, string> = {};
+    const mockSessionStorage = {
+      getItem: (k: string) => store[k] ?? null,
+      setItem: (k: string, v: string) => {
+        store[k] = v;
+      },
+    };
+    vi.stubGlobal("sessionStorage", mockSessionStorage);
+    vi.stubGlobal("window", { sessionStorage: mockSessionStorage });
+    try {
+      setNewerVersionCooldown("budget-1");
+      expect(isNewerVersionCooldownActive("budget-1")).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("returns false for different budget than cooldown", () => {
+    const store: Record<string, string> = {};
+    const mockSessionStorage = {
+      getItem: (k: string) => store[k] ?? null,
+      setItem: (k: string, v: string) => {
+        store[k] = v;
+      },
+    };
+    vi.stubGlobal("sessionStorage", mockSessionStorage);
+    vi.stubGlobal("window", { sessionStorage: mockSessionStorage });
+    try {
+      setNewerVersionCooldown("budget-a");
+      expect(isNewerVersionCooldownActive("budget-b")).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("does not throw when window is undefined (Node)", () => {
+    vi.stubGlobal("window", undefined);
+    try {
+      expect(() => setNewerVersionCooldown("x")).not.toThrow();
+      expect(isNewerVersionCooldownActive("x")).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

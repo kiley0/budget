@@ -32,13 +32,13 @@ export default function TermsOfServicePage() {
               2. What the Service Is
             </h2>
             <p>
-              Sunrise Budget is a web-based tool that lets you create and
-              edit a budget by entering expected income and expenses (e.g.
-              recurring or one-time), view summaries by month and year, export
-              or import your budget data, and optionally sync encrypted data to
-              our servers so you can access it from another device. The Service
-              does not connect to your bank or other accounts, does not track
-              actual transactions, and does not provide financial, tax, or legal
+              Sunrise Budget is a web-based tool that lets you create and edit a
+              budget by entering expected income and expenses (e.g. recurring or
+              one-time), view summaries by month and year, export or import your
+              budget data, and optionally sync encrypted data to our servers so
+              you can access it from another device. The Service does not
+              connect to your bank or other accounts, does not track actual
+              transactions, and does not provide financial, tax, or legal
               advice.
             </p>
           </section>

@@ -14,6 +14,7 @@ export interface BudgetHotkeysDialogState {
   editExpenseEventDialogOpen?: boolean;
   addSourceDialogOpen?: boolean;
   addExpenseDestinationDialogOpen?: boolean;
+  newerVersionDialogOpen?: boolean;
   showBlankState?: boolean;
 }
 
@@ -81,6 +82,7 @@ export function useBudgetHotkeys(
         dialogState.editExpenseEventDialogOpen ||
         dialogState.addSourceDialogOpen ||
         dialogState.addExpenseDestinationDialogOpen ||
+        dialogState.newerVersionDialogOpen ||
         dialogState.showBlankState;
       if (anyDialogOpen) return;
 
@@ -151,6 +153,7 @@ export function useBudgetHotkeys(
     dialogState.editExpenseEventDialogOpen,
     dialogState.addSourceDialogOpen,
     dialogState.addExpenseDestinationDialogOpen,
+    dialogState.newerVersionDialogOpen,
     dialogState.showBlankState,
   ]);
 

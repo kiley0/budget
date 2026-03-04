@@ -32,16 +32,16 @@ npm run dev
 
 All app code lives under **`src/`**.
 
-| What                   | Where                                                                                                                                        |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Routes**             | `src/app/` — `page.tsx` (home), `get-started/page.tsx`, `budget/page.tsx` (redirect), `budget/[budgetId]/page.tsx` (main budget UI).         |
-| **API**                | `src/app/api/sync/` — GET (fetch blob) and POST (save blob) for Vercel Blob. `api/stock-price/` for live stock quotes.                      |
-| **State**              | `src/store/` — `budget.ts` (Zustand budget state, load/save, CRUD), `session.ts` (in-memory key, unlock state).                              |
-| **Crypto**             | `src/lib/crypto.ts` — key derivation, encrypt/decrypt, verify passphrase.                                                                    |
-| **Constants & config** | `src/lib/constants.ts` — storage key prefixes, expense categories, labels.                                                                   |
-| **Budget UI**          | `src/components/budget/` — header (export/import/logout), yearly summary, monthly P&L, dialogs for adding sources/destinations.             |
+| What                   | Where                                                                                                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Routes**             | `src/app/` — `page.tsx` (home), `get-started/page.tsx`, `budget/page.tsx` (redirect), `budget/[budgetId]/page.tsx` (main budget UI).                 |
+| **API**                | `src/app/api/sync/` — GET (fetch blob) and POST (save blob) for Vercel Blob. `api/stock-price/` for live stock quotes.                               |
+| **State**              | `src/store/` — `budget.ts` (Zustand budget state, load/save, CRUD), `session.ts` (in-memory key, unlock state).                                      |
+| **Crypto**             | `src/lib/crypto.ts` — key derivation, encrypt/decrypt, verify passphrase.                                                                            |
+| **Constants & config** | `src/lib/constants.ts` — storage key prefixes, expense categories, labels.                                                                           |
+| **Budget UI**          | `src/components/budget/` — header (export/import/logout), yearly summary, monthly P&L, dialogs for adding sources/destinations.                      |
 | **Hooks**              | `src/hooks/` — `useBudgetMonthData` (per-month events, yearly totals), `useBudgetSourceNames` (ID → name), `useBudgetHotkeys`, `useStockPriceFetch`. |
-| **Utilities**          | `src/lib/` — `schedule-format.ts` (dates, ordinals), `schedule-builders.ts` (form → schedule), `import-normalizers.ts` (JSON → BudgetState). |
+| **Utilities**          | `src/lib/` — `schedule-format.ts` (dates, ordinals), `schedule-builders.ts` (form → schedule), `import-normalizers.ts` (JSON → BudgetState).         |
 
 More detail on conventions and adding features: **[src/README.md](src/README.md)**.
 

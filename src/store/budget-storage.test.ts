@@ -7,6 +7,8 @@ import {
   loadBudget,
   saveBudget,
   replaceBudgetFromExport,
+  loadRemoteVersionAndApply,
+  isRemoteNewer,
 } from "./budget";
 import { useSessionStore } from "./session";
 import {
@@ -14,12 +16,15 @@ import {
   decrypt,
   deriveKeyWithSalt,
   persistKeyToSession,
+  prepareSyncPayload,
+  setStoredSalt,
 } from "@/lib/crypto";
 import {
   ENCRYPTED_STORAGE_KEY_PREFIX,
   SESSION_DECRYPTED_KEY_PREFIX,
   BUDGET_ID_STORAGE_KEY,
   SESSION_KEY_STORAGE_KEY,
+  setNewerVersionCooldown,
 } from "@/lib/constants";
 
 const TEST_BUDGET_ID = "test-storage-budget-id";
@@ -29,6 +34,31 @@ SALT.fill(1);
 async function getTestKey() {
   return deriveKeyWithSalt("test-passphrase", SALT);
 }
+
+describe("isRemoteNewer", () => {
+  it("returns true when remote is strictly greater", () => {
+    expect(isRemoteNewer("2025-06-01T00:00:00Z", "2025-01-01T00:00:00Z")).toBe(
+      true,
+    );
+  });
+
+  it("returns false when remote equals local", () => {
+    const t = "2025-01-01T00:00:00Z";
+    expect(isRemoteNewer(t, t)).toBe(false);
+  });
+
+  it("returns false when remote is older", () => {
+    expect(isRemoteNewer("2025-01-01T00:00:00Z", "2025-06-01T00:00:00Z")).toBe(
+      false,
+    );
+  });
+
+  it("returns false for invalid timestamps", () => {
+    expect(isRemoteNewer("not-a-date", "2025-01-01T00:00:00Z")).toBe(false);
+    expect(isRemoteNewer("2025-01-01T00:00:00Z", "invalid")).toBe(false);
+    expect(isRemoteNewer("", "")).toBe(false);
+  });
+});
 
 describe("budget storage", () => {
   beforeEach(async () => {
@@ -192,6 +222,79 @@ describe("budget storage", () => {
       expect(result).toEqual({ ok: false, reason: "no_key" });
     });
 
+    it("returns newerVersionAvailable when remote metadata has newer updatedAt (fast path)", async () => {
+      const key = await getTestKey();
+      await persistKeyToSession(key);
+      useSessionStore.getState().setKey(key);
+      const sessionKey = `${SESSION_DECRYPTED_KEY_PREFIX}${TEST_BUDGET_ID}`;
+      const sessionTime = "2025-01-01T00:00:00Z";
+      const budgetJson = JSON.stringify({
+        budgetId: TEST_BUDGET_ID,
+        version: 1,
+        updatedAt: sessionTime,
+        incomeSources: [{ id: "src", name: "Job", description: "" }],
+        incomeEvents: [],
+        expenseDestinations: [],
+        expenseEvents: [],
+      });
+      sessionStorage.setItem(sessionKey, budgetJson);
+      // Set store with older data so we don't early-return (current < migrated)
+      useBudgetStore.setState((s) => ({
+        ...s,
+        updatedAt: "2024-06-01T00:00:00Z",
+      }));
+      vi.mocked(fetch).mockImplementation((url) => {
+        if (String(url).includes("meta=1")) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                updatedAt: "2025-06-01T00:00:00Z",
+              }),
+          } as Response);
+        }
+        return Promise.resolve({ ok: false } as Response);
+      });
+      const result = await loadBudget(TEST_BUDGET_ID);
+      expect(result).toEqual({ ok: true, newerVersionAvailable: true });
+      const state = useBudgetStore.getState();
+      expect(state.incomeSources[0].name).toBe("Job");
+    });
+
+    it("does not return newerVersionAvailable when cooldown is active", async () => {
+      const key = await getTestKey();
+      await persistKeyToSession(key);
+      useSessionStore.getState().setKey(key);
+      setNewerVersionCooldown(TEST_BUDGET_ID);
+      const sessionKey = `${SESSION_DECRYPTED_KEY_PREFIX}${TEST_BUDGET_ID}`;
+      const budgetJson = JSON.stringify({
+        budgetId: TEST_BUDGET_ID,
+        version: 1,
+        updatedAt: "2025-01-01T00:00:00Z",
+        incomeSources: [],
+        incomeEvents: [],
+        expenseDestinations: [],
+        expenseEvents: [],
+      });
+      sessionStorage.setItem(sessionKey, budgetJson);
+      useBudgetStore.setState((s) => ({
+        ...s,
+        updatedAt: "2024-06-01T00:00:00Z",
+      }));
+      vi.mocked(fetch).mockImplementation((url) => {
+        if (String(url).includes("meta=1")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ updatedAt: "2025-06-01T00:00:00Z" }),
+          } as Response);
+        }
+        return Promise.resolve({ ok: false } as Response);
+      });
+      const result = await loadBudget(TEST_BUDGET_ID);
+      expect(result).toEqual({ ok: true });
+      expect("newerVersionAvailable" in result).toBe(false);
+    });
+
     it("updates BUDGET_ID_STORAGE_KEY in localStorage when loading", async () => {
       const key = await getTestKey();
       await persistKeyToSession(key);
@@ -209,6 +312,66 @@ describe("budget storage", () => {
         await encrypt(budgetJson, key),
       );
       await loadBudget(TEST_BUDGET_ID);
+      expect(localStorage.getItem(BUDGET_ID_STORAGE_KEY)).toBe(TEST_BUDGET_ID);
+    });
+  });
+
+  describe("loadRemoteVersionAndApply", () => {
+    it("returns decrypt_failed when sync returns no blob", async () => {
+      vi.mocked(fetch).mockResolvedValue({ ok: false } as Response);
+      const result = await loadRemoteVersionAndApply(
+        TEST_BUDGET_ID,
+        "test-passphrase",
+      );
+      expect(result).toEqual({ ok: false, reason: "decrypt_failed" });
+    });
+
+    it("loads remote blob and persists to all stores when decrypt succeeds", async () => {
+      setStoredSalt(SALT);
+      const key = await getTestKey();
+      const budgetJson = JSON.stringify({
+        budgetId: TEST_BUDGET_ID,
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        incomeSources: [
+          { id: "remote-src", name: "Remote Job", description: "" },
+        ],
+        incomeEvents: [],
+        expenseDestinations: [],
+        expenseEvents: [],
+      });
+      const encrypted = await encrypt(budgetJson, key);
+      const portablePayload = prepareSyncPayload(encrypted);
+
+      vi.mocked(fetch)
+        .mockImplementationOnce(() =>
+          Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve(portablePayload),
+          } as Response),
+        )
+        .mockImplementationOnce(() =>
+          Promise.resolve({ ok: true } as Response),
+        );
+
+      const result = await loadRemoteVersionAndApply(
+        TEST_BUDGET_ID,
+        "test-passphrase",
+      );
+      expect(result).toEqual({ ok: true });
+      const state = useBudgetStore.getState();
+      expect(state.incomeSources).toHaveLength(1);
+      expect(state.incomeSources[0].name).toBe("Remote Job");
+      expect(
+        localStorage.getItem(
+          `${ENCRYPTED_STORAGE_KEY_PREFIX}${TEST_BUDGET_ID}`,
+        ),
+      ).toBeTruthy();
+      expect(
+        sessionStorage.getItem(
+          `${SESSION_DECRYPTED_KEY_PREFIX}${TEST_BUDGET_ID}`,
+        ),
+      ).toBeTruthy();
       expect(localStorage.getItem(BUDGET_ID_STORAGE_KEY)).toBe(TEST_BUDGET_ID);
     });
   });

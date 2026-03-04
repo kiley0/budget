@@ -10,6 +10,31 @@ export const SESSION_KEY_STORAGE_KEY = "budget_session_key";
 /** Key for the current/last-used budget ID in localStorage (for redirect from /budget). */
 export const BUDGET_ID_STORAGE_KEY = "budget_id";
 
+/** Prefix for newer-version cooldown in sessionStorage. Cooldown expires at ISO timestamp. */
+const NEWER_VERSION_COOLDOWN_PREFIX = "budget_newer_version_cooldown_";
+const NEWER_VERSION_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
+
+export function setNewerVersionCooldown(budgetId: string): void {
+  if (typeof window === "undefined") return;
+  const expiresAt = new Date(
+    Date.now() + NEWER_VERSION_COOLDOWN_MS,
+  ).toISOString();
+  sessionStorage.setItem(
+    `${NEWER_VERSION_COOLDOWN_PREFIX}${budgetId}`,
+    expiresAt,
+  );
+}
+
+export function isNewerVersionCooldownActive(budgetId: string): boolean {
+  if (typeof window === "undefined") return false;
+  const raw = sessionStorage.getItem(
+    `${NEWER_VERSION_COOLDOWN_PREFIX}${budgetId}`,
+  );
+  if (!raw) return false;
+  const expiresAt = new Date(raw).getTime();
+  return Number.isFinite(expiresAt) && Date.now() < expiresAt;
+}
+
 /** Sentinel value for Radix Select "no selection" (SelectItem cannot use value=""). */
 export const SELECT_NONE = "__none__";
 

@@ -1,4 +1,5 @@
 export { AddExpenseDestinationDialog } from "./AddExpenseDestinationDialog";
+export { NewerVersionAvailableDialog } from "./NewerVersionAvailableDialog";
 export { AddIncomeSourceDialog } from "./AddIncomeSourceDialog";
 export { AddSourceDialog } from "./AddSourceDialog";
 export { BudgetCommandPalette } from "./BudgetCommandPalette";

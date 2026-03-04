@@ -15,6 +15,7 @@ import {
   saveBudget,
   replaceBudgetFromExport,
   fetchEncryptedFromSync,
+  loadRemoteVersionAndApply,
   addIncomeSource,
   updateIncomeSource,
   deleteIncomeSource,
@@ -43,6 +44,7 @@ import {
   SELECT_NONE,
   getPreferences,
   setPreferences,
+  setNewerVersionCooldown,
   PAYCHECK_WITHHOLDINGS,
   STOCK_INCOME_TYPES,
   getExpenseCategoryLabel,
@@ -75,6 +77,7 @@ import { useBudgetMonthData } from "@/hooks/useBudgetMonthData";
 import { useBudgetSourceNames } from "@/hooks/useBudgetSourceNames";
 import { useBudgetHotkeys } from "@/hooks/useBudgetHotkeys";
 import { useStockPriceFetch } from "@/hooks/useStockPriceFetch";
+import { useSyncVersionPolling } from "@/hooks/useSyncVersionPolling";
 import {
   AddExpenseDestinationDialog,
   AddIncomeSourceDialog,
@@ -84,6 +87,7 @@ import {
   ExpenseEventFormFields,
   IncomeEventFormFields,
   MonthlyPnLSection,
+  NewerVersionAvailableDialog,
   SummaryStat,
   OnboardingFlow,
   YearlySummaryDialogContent,
@@ -103,7 +107,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Banknote, CreditCard, Minus, Plus } from "lucide-react";
+import { Banknote, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 
 export default function BudgetPage() {
@@ -173,6 +177,7 @@ export default function BudgetPage() {
 
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [yearlySummaryDialogOpen, setYearlySummaryDialogOpen] = useState(false);
+  const [newerVersionDialogOpen, setNewerVersionDialogOpen] = useState(false);
   const [expandedPaycheckEventIds, setExpandedPaycheckEventIds] = useState<
     Set<string>
   >(new Set());
@@ -945,6 +950,11 @@ export default function BudgetPage() {
     loadBudget(budgetId).then((result) => {
       if (cancelled) return;
       if (!result.ok) setKeyErrorReason(result.reason);
+      else if (
+        "newerVersionAvailable" in result &&
+        result.newerVersionAvailable
+      )
+        setNewerVersionDialogOpen(true);
     });
     return () => {
       cancelled = true;
@@ -1007,6 +1017,12 @@ export default function BudgetPage() {
     }
   }, []);
 
+  useSyncVersionPolling({
+    enabled: isUnlocked && !!budgetId && !newerVersionDialogOpen,
+    budgetId: budgetId ?? undefined,
+    onNewerVersion: () => setNewerVersionDialogOpen(true),
+  });
+
   const { commandPaletteOpenRef } = useBudgetHotkeys(
     {
       commandPaletteOpen,
@@ -1019,6 +1035,7 @@ export default function BudgetPage() {
       editExpenseEventDialogOpen,
       addSourceDialogOpen,
       addExpenseDestinationDialogOpen,
+      newerVersionDialogOpen,
       showBlankState,
     },
     {
@@ -1376,18 +1393,12 @@ export default function BudgetPage() {
                         Net income
                       </span>
                       <span
-                        className={`flex items-center gap-1 ${
+                        className={`${
                           getYearlyTotalIncome() - getYearlyTotalExpenses() >= 0
                             ? "text-emerald-600"
                             : "text-destructive"
                         }`}
                       >
-                        {getYearlyTotalIncome() - getYearlyTotalExpenses() >=
-                        0 ? (
-                          <Plus className="size-3.5 shrink-0" aria-hidden />
-                        ) : (
-                          <Minus className="size-3.5 shrink-0" aria-hidden />
-                        )}
                         {formatCurrency(
                           getYearlyTotalIncome() - getYearlyTotalExpenses(),
                         )}
@@ -1398,17 +1409,12 @@ export default function BudgetPage() {
                         Savings & investments
                       </span>
                       <span
-                        className={`flex items-center gap-1 ${
+                        className={`${
                           getYearlyTotalSavings() >= 0
                             ? "text-emerald-600"
                             : "text-destructive"
                         }`}
                       >
-                        {getYearlyTotalSavings() >= 0 ? (
-                          <Plus className="size-3.5 shrink-0" aria-hidden />
-                        ) : (
-                          <Minus className="size-3.5 shrink-0" aria-hidden />
-                        )}
                         {formatCurrency(getYearlyTotalSavings())}
                       </span>
                     </div>
@@ -1485,20 +1491,7 @@ export default function BudgetPage() {
                                 : "text-destructive"
                             }`}
                           >
-                            <span className="inline-flex items-center gap-1 tabular-nums">
-                              {getYearlyTotalIncome() -
-                                getYearlyTotalExpenses() >=
-                              0 ? (
-                                <Plus
-                                  className="size-3.5 shrink-0"
-                                  aria-hidden
-                                />
-                              ) : (
-                                <Minus
-                                  className="size-3.5 shrink-0"
-                                  aria-hidden
-                                />
-                              )}
+                            <span className="tabular-nums">
                               {formatCurrency(
                                 getYearlyTotalIncome() -
                                   getYearlyTotalExpenses(),
@@ -1517,18 +1510,7 @@ export default function BudgetPage() {
                                 : "text-destructive"
                             }`}
                           >
-                            <span className="inline-flex items-center gap-1 tabular-nums">
-                              {getYearlyTotalSavings() >= 0 ? (
-                                <Plus
-                                  className="size-3.5 shrink-0"
-                                  aria-hidden
-                                />
-                              ) : (
-                                <Minus
-                                  className="size-3.5 shrink-0"
-                                  aria-hidden
-                                />
-                              )}
+                            <span className="tabular-nums">
                               {formatCurrency(getYearlyTotalSavings())}
                             </span>
                           </td>
@@ -1544,18 +1526,7 @@ export default function BudgetPage() {
                                 : "text-destructive"
                             }`}
                           >
-                            <span className="inline-flex items-center gap-1 tabular-nums">
-                              {getYearlyTotalDebtRepayment() >= 0 ? (
-                                <Plus
-                                  className="size-3.5 shrink-0"
-                                  aria-hidden
-                                />
-                              ) : (
-                                <Minus
-                                  className="size-3.5 shrink-0"
-                                  aria-hidden
-                                />
-                              )}
+                            <span className="tabular-nums">
                               {formatCurrency(getYearlyTotalDebtRepayment())}
                             </span>
                           </td>
@@ -1584,6 +1555,20 @@ export default function BudgetPage() {
                   addIncomeSource(name, description)
                 }
               />
+
+              {budgetId && (
+                <NewerVersionAvailableDialog
+                  open={newerVersionDialogOpen}
+                  onOpenChange={setNewerVersionDialogOpen}
+                  budgetId={budgetId}
+                  onUpdate={async (passphrase) =>
+                    loadRemoteVersionAndApply(budgetId, passphrase)
+                  }
+                  onDismissWithoutUpdate={() =>
+                    setNewerVersionCooldown(budgetId)
+                  }
+                />
+              )}
 
               <Dialog open={incomeModalOpen} onOpenChange={setIncomeModalOpen}>
                 <DialogContent className="sm:max-w-lg">
@@ -2743,13 +2728,6 @@ export default function BudgetPage() {
                     value={formatCurrency(
                       getYearlyTotalIncome() - getYearlyTotalExpenses(),
                     )}
-                    icon={
-                      getYearlyTotalIncome() - getYearlyTotalExpenses() >= 0 ? (
-                        <Plus className="size-3.5 shrink-0" aria-hidden />
-                      ) : (
-                        <Minus className="size-3.5 shrink-0" aria-hidden />
-                      )
-                    }
                     variant={
                       getYearlyTotalIncome() - getYearlyTotalExpenses() >= 0
                         ? "positive"
@@ -2759,13 +2737,6 @@ export default function BudgetPage() {
                   <SummaryStat
                     label="Savings & investments"
                     value={formatCurrency(getYearlyTotalSavings())}
-                    icon={
-                      getYearlyTotalSavings() >= 0 ? (
-                        <Plus className="size-3.5 shrink-0" aria-hidden />
-                      ) : (
-                        <Minus className="size-3.5 shrink-0" aria-hidden />
-                      )
-                    }
                     variant={
                       getYearlyTotalSavings() >= 0 ? "positive" : "negative"
                     }
@@ -2773,13 +2744,6 @@ export default function BudgetPage() {
                   <SummaryStat
                     label="Debt repayment"
                     value={formatCurrency(getYearlyTotalDebtRepayment())}
-                    icon={
-                      getYearlyTotalDebtRepayment() >= 0 ? (
-                        <Plus className="size-3.5 shrink-0" aria-hidden />
-                      ) : (
-                        <Minus className="size-3.5 shrink-0" aria-hidden />
-                      )
-                    }
                     variant={
                       getYearlyTotalDebtRepayment() >= 0
                         ? "positive"

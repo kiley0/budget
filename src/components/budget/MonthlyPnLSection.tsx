@@ -267,6 +267,16 @@ export function MonthlyPnLSection({
     closeActualsDialog();
   }
 
+  function scrollToMonthCard(index: number) {
+    const el = document.querySelector(`[data-month-index="${index}"]`);
+    if (el) {
+      const y =
+        (el as HTMLElement).getBoundingClientRect().top +
+        (window.scrollY ?? document.documentElement.scrollTop);
+      window.scrollTo({ top: y - 16, behavior: "smooth" });
+    }
+  }
+
   return (
     <section className="mt-10" aria-labelledby="monthly-pnl-heading">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -313,7 +323,9 @@ export function MonthlyPnLSection({
           <CardContent className="px-0 pt-6">
             <ChartContainer
               config={pnlChartConfig}
-              className="h-[140px] w-full"
+              className="h-[140px] w-full cursor-pointer"
+              role="img"
+              aria-label="Monthly income and expenses. Click a month to jump to that month."
             >
               <BarChart
                 data={chartData}
@@ -376,11 +388,15 @@ export function MonthlyPnLSection({
                   dataKey="income"
                   fill="var(--color-income)"
                   radius={[2, 2, 0, 0]}
+                  cursor="pointer"
+                  onClick={(_, index) => scrollToMonthCard(index)}
                 />
                 <Bar
                   dataKey="expenses"
                   fill="var(--color-expenses)"
                   radius={[2, 2, 0, 0]}
+                  cursor="pointer"
+                  onClick={(_, index) => scrollToMonthCard(index)}
                 />
               </BarChart>
             </ChartContainer>

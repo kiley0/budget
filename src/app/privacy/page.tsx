@@ -22,12 +22,12 @@ export default function PrivacyPolicyPage() {
               1. Introduction
             </h2>
             <p>
-              This Privacy Policy describes how Sunrise Budget
-              (&quot;we,&quot; &quot;our,&quot; or the &quot;Service&quot;)
-              handles information when you use our web-based budgeting tool. We
-              do not collect your name, email, or account information. Your
-              budget content is encrypted so we cannot read it. This policy
-              explains what data exists, where it lives, and how we use it.
+              This Privacy Policy describes how Sunrise Budget (&quot;we,&quot;
+              &quot;our,&quot; or the &quot;Service&quot;) handles information
+              when you use our web-based budgeting tool. We do not collect your
+              name, email, or account information. Your budget content is
+              encrypted so we cannot read it. This policy explains what data
+              exists, where it lives, and how we use it.
             </p>
           </section>
           <section>
