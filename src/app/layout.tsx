@@ -50,7 +50,11 @@ export default function RootLayout({
                   asChild
                   className="h-auto p-0 text-muted-foreground hover:text-foreground"
                 >
-                  <Link href="https://github.com/kiley0/budget" target="_blank" rel="noopener noreferrer">
+                  <Link
+                    href="https://github.com/kiley0/budget"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     View on GitHub
                   </Link>
                 </Button>

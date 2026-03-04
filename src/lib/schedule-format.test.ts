@@ -27,10 +27,26 @@ describe("formatIncomeSchedule", () => {
     expect(r).toMatch(/2026/);
     expect(r.length).toBeGreaterThan(5);
   });
+  it("formats Aug 7 as day 7, not 6 (timezone-safe)", () => {
+    const r = formatIncomeSchedule({ type: "one-time", date: "2026-08-07" });
+    expect(r).toMatch(/7/);
+    expect(r).not.toMatch(/\s6,/);
+  });
   it("formats recurring day of month", () => {
     expect(formatIncomeSchedule({ type: "recurring", dayOfMonth: 11 })).toBe(
       "11th of each month",
     );
+  });
+  it("formats recurring with startDate/endDate using local date (timezone-safe)", () => {
+    const r = formatIncomeSchedule({
+      type: "recurring",
+      dayOfMonth: 15,
+      startDate: "2026-01-01",
+      endDate: "2026-12-31",
+    });
+    expect(r).toMatch(/Jan.*2026/);
+    expect(r).toMatch(/Dec.*2026/);
+    expect(r).not.toMatch(/Dec.*2025/);
   });
 });
 
@@ -40,6 +56,11 @@ describe("formatExpenseSchedule", () => {
     expect(r).toMatch(/Jan/);
     expect(r).toMatch(/2026/);
   });
+  it("formats Aug 7 as day 7, not 6 (timezone-safe)", () => {
+    const r = formatExpenseSchedule({ type: "one-time", date: "2026-08-07" });
+    expect(r).toMatch(/7/);
+    expect(r).not.toMatch(/\s6,/);
+  });
   it("formats recurring", () => {
     expect(formatExpenseSchedule({ type: "recurring", dayOfMonth: 1 })).toBe(
       "1st of each month",
@@ -48,18 +69,41 @@ describe("formatExpenseSchedule", () => {
 });
 
 describe("getDayForSort", () => {
-  it("returns date day for one-time schedule (same as parsing date with Z)", () => {
+  it("returns day from date string for one-time schedule (timezone-safe)", () => {
     const event: IncomeEvent = {
       id: "1",
       label: "Pay",
       amount: 1000,
       schedule: { type: "one-time", date: "2026-03-15" },
     };
-    const expected =
-      event.schedule.type === "one-time"
-        ? new Date(event.schedule.date + "Z").getDate()
-        : event.schedule.dayOfMonth;
-    expect(getDayForSort(event)).toBe(expected);
+    expect(getDayForSort(event)).toBe(15);
+  });
+  it("returns 7 for Aug 7 regardless of timezone (fixes UTC parse bug)", () => {
+    const event: IncomeEvent = {
+      id: "1",
+      label: "Income",
+      amount: 500,
+      schedule: { type: "one-time", date: "2026-08-07" },
+    };
+    expect(getDayForSort(event)).toBe(7);
+  });
+  it("returns 1 for Jan 1 (timezone-sensitive: UTC midnight is Dec 31 in PST)", () => {
+    const event: IncomeEvent = {
+      id: "1",
+      label: "New Year",
+      amount: 100,
+      schedule: { type: "one-time", date: "2026-01-01" },
+    };
+    expect(getDayForSort(event)).toBe(1);
+  });
+  it("returns 31 for Dec 31 (timezone-sensitive: UTC midnight can roll to next day)", () => {
+    const event: IncomeEvent = {
+      id: "1",
+      label: "Year end",
+      amount: 100,
+      schedule: { type: "one-time", date: "2026-12-31" },
+    };
+    expect(getDayForSort(event)).toBe(31);
   });
   it("returns dayOfMonth for recurring schedule", () => {
     const event: ExpenseEvent = {
@@ -143,6 +187,32 @@ describe("sortEventsByDayThenAmount", () => {
     expect(sorted[0].amount).toBe(100);
     expect(sorted[1].amount).toBe(200);
     expect(sorted[2].amount).toBe(50);
+  });
+  it("sorts one-time events by correct day (timezone-safe)", () => {
+    const events: IncomeEvent[] = [
+      {
+        id: "a",
+        label: "Aug 7",
+        amount: 100,
+        schedule: { type: "one-time", date: "2026-08-07" },
+      },
+      {
+        id: "b",
+        label: "Aug 6",
+        amount: 200,
+        schedule: { type: "one-time", date: "2026-08-06" },
+      },
+      {
+        id: "c",
+        label: "Aug 8",
+        amount: 150,
+        schedule: { type: "one-time", date: "2026-08-08" },
+      },
+    ];
+    const sorted = sortEventsByDayThenAmount(events);
+    expect(getDayForSort(sorted[0])).toBe(6);
+    expect(getDayForSort(sorted[1])).toBe(7);
+    expect(getDayForSort(sorted[2])).toBe(8);
   });
   it("does not mutate input array", () => {
     const events: IncomeEvent[] = [
