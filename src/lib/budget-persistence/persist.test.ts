@@ -129,7 +129,7 @@ describe("preparePersistPayloads", () => {
 
   it("encrypted can be decrypted with same key", async () => {
     const { decrypt } = await import("@/lib/crypto");
-    const plaintext = '{"budgetId":"x","incomeSources":[]}';
+    const plaintext = '{"budgetId":"x","incomeEvents":[]}';
     const key = await getTestKey();
 
     const result = await preparePersistPayloads(plaintext, key);

@@ -81,14 +81,11 @@ export function budgetStateToCsv(
   state: BudgetState,
   year = new Date().getFullYear(),
 ): string {
-  const incomeSourceName = (id: string | undefined) =>
-    state.incomeSources.find((s) => s.id === id)?.name ?? "";
-
   const actualsByMonth = state.actualsByMonth ?? {};
   const rows: TransactionRow[] = [];
 
   for (const e of state.incomeEvents as IncomeEvent[]) {
-    const source = incomeSourceName(e.incomeSourceId);
+    const source = "";
     const type = getIncomeTypeLabel(e.incomeType);
     for (const date of getDatesForSchedule(e.schedule, year)) {
       const monthKey = date.slice(0, 7); // "YYYY-MM"

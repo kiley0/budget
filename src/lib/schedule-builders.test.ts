@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildIncomeScheduleFromForm,
   buildExpenseScheduleFromForm,
+  getDefaultRecurringYearRange,
 } from "./schedule-builders";
 
 describe("buildIncomeScheduleFromForm", () => {
@@ -135,5 +136,14 @@ describe("buildExpenseScheduleFromForm", () => {
       startDate: "2025-01-01",
       endDate: "2025-12-31",
     });
+  });
+});
+
+describe("getDefaultRecurringYearRange", () => {
+  it("returns jan and dec for current year in YYYY-MM format", () => {
+    const { jan, dec } = getDefaultRecurringYearRange();
+    const year = new Date().getFullYear();
+    expect(jan).toBe(`${year}-01`);
+    expect(dec).toBe(`${year}-12`);
   });
 });

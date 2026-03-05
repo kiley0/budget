@@ -11,7 +11,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { INCOME_TYPES, STOCK_INCOME_TYPES } from "@/lib/constants";
-import type { IncomeSource } from "@/store/budget";
 import { PaycheckIncomeForm } from "./PaycheckIncomeForm";
 import type { ScheduleType } from "./ScheduleFields";
 import { ScheduleFields } from "./ScheduleFields";
@@ -19,9 +18,6 @@ import { StockIncomeForm } from "./StockIncomeForm";
 
 export interface IncomeEventFormFieldsProps {
   idPrefix: string;
-  incomeSources: IncomeSource[];
-  incomeSourceId: string;
-  onIncomeSourceIdChange: (v: string) => void;
   incomeType: string;
   /** Called with Select value (SELECT_NONE or type). Parent handles reset of stock/paycheck fields. */
   onIncomeTypeChange: (v: string) => void;
@@ -70,9 +66,6 @@ export interface IncomeEventFormFieldsProps {
 
 export function IncomeEventFormFields({
   idPrefix,
-  incomeSources,
-  incomeSourceId,
-  onIncomeSourceIdChange,
   incomeType,
   onIncomeTypeChange,
   stockSymbol,
@@ -113,29 +106,6 @@ export function IncomeEventFormFields({
 
   return (
     <>
-      <div className="space-y-2">
-        <Label htmlFor={`${idPrefix}-source`} className={labelClassName}>
-          Income source
-        </Label>
-        <Select
-          value={incomeSourceId || selectNoneValue}
-          onValueChange={(v) =>
-            onIncomeSourceIdChange(v === selectNoneValue ? "" : v)
-          }
-        >
-          <SelectTrigger id={`${idPrefix}-source`} className="w-full">
-            <SelectValue placeholder="Select a source" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={selectNoneValue}>Select a source</SelectItem>
-            {incomeSources.map((src) => (
-              <SelectItem key={src.id} value={src.id}>
-                {src.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
       <div className="space-y-2">
         <Label htmlFor={`${idPrefix}-type`} className={labelClassName}>
           Type

@@ -6,7 +6,7 @@ This doc expands on the [root README](../README.md) with folder layout, conventi
 
 - **`app/`** — Next.js routes and layouts. `app/page.tsx` (home), `get-started/`, `budget/` (redirect + `[budgetId]`). Heavy UI lives in `components/`.
 - **`components/`** — React UI. `components/budget/` = header, yearly summary, monthly P&L (no dialogs; those are inline on the budget page).
-- **`hooks/`** — React hooks for shared state/derived data: `useBudgetMonthData`, `useBudgetSourceNames`.
+- **`hooks/`** — React hooks for shared state/derived data: `useBudgetMonthData`.
 - **`lib/`** — Pure utilities (no React, no store): crypto, constants, formatting, schedule builders, import normalizers.
 - **`store/`** — Zustand: `budget.ts` (state + load/save/CRUD), `session.ts` (key, isUnlocked).
 - **`app/api/`** — API routes; `api/sync` for Vercel Blob GET/POST.
@@ -17,7 +17,6 @@ This doc expands on the [root README](../README.md) with folder layout, conventi
 - **Formatting** — `lib/schedule-format.ts`: schedule/date strings, `formatDayOrdinal` ("11th"), `formatIncomeSchedule` / `formatExpenseSchedule`.
 - **Form → model** — `lib/schedule-builders.ts`: form values → `IncomeEventSchedule` / `ExpenseEventSchedule` (null if invalid).
 - **Import/export** — `lib/import-normalizers.ts`: `normalizeImportedBudget()` turns JSON into current `BudgetState` (handles old/missing fields).
-- **Source/destination names** — `hooks/useBudgetSourceNames`: resolve income source and expense destination IDs to display names; used in the budget page and report components.
 - **Month/year data** — `hooks/useBudgetMonthData(currentYear)`: per-month event lists and yearly totals for P&L and summary.
 
 ## Adding features

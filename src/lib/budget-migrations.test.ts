@@ -6,7 +6,7 @@ describe("migrateBudget", () => {
   it("returns fallback for null or non-object input", () => {
     const fromNull = migrateBudget(null, testBudgetId);
     expect(fromNull.budgetId).toBe(testBudgetId);
-    expect(fromNull.incomeSources).toEqual([]);
+    expect(fromNull.incomeEvents).toEqual([]);
     expect(fromNull.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
 
     expect(migrateBudget("string", testBudgetId).budgetId).toBe(testBudgetId);
@@ -18,7 +18,6 @@ describe("migrateBudget", () => {
       budgetId: "old",
       version: 1,
       updatedAt: "2024-01-01",
-      incomeSources: [],
       incomeEvents: [],
       expenseSources: [{ id: "es-1", name: "Landlord", description: "Rent" }],
       expenseEvents: [
@@ -52,7 +51,6 @@ describe("migrateBudget", () => {
       budgetId: "x",
       version: 1,
       updatedAt: "2024-06-01",
-      incomeSources: [{ id: "i1", name: "Job", description: "" }],
       incomeEvents: [
         {
           id: "ie1",
@@ -81,7 +79,6 @@ describe("migrateBudget", () => {
       budgetId: "x",
       version: 1,
       updatedAt: "2024-01-01",
-      incomeSources: [],
       incomeEvents: [
         {
           id: "ie1",

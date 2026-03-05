@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildYearlySummaryData } from "./yearly-summary";
 import { SAVINGS_CATEGORY, DEBT_REPAYMENT_CATEGORY } from "./constants";
-import type { IncomeEvent, ExpenseEvent, IncomeSource } from "@/store/budget";
+import type { IncomeEvent, ExpenseEvent } from "@/store/budget";
 import type { MonthSlot } from "./date-view";
 
 function monthSlot(year: number, month: number): MonthSlot {
@@ -32,7 +32,6 @@ describe("buildYearlySummaryData", () => {
         id: "ie1",
         label: "Salary",
         amount: 5000,
-        incomeSourceId: "src1",
         schedule: { type: "recurring", daysOfMonth: [15] },
       },
     ];
@@ -246,39 +245,6 @@ describe("buildYearlySummaryData", () => {
       8000 / 0.75,
       0,
     );
-  });
-
-  it("uses income source and expense destination names as sublabels", () => {
-    const incomeSources: IncomeSource[] = [
-      { id: "src1", name: "Employer Inc", description: "" },
-    ];
-    const income: IncomeEvent[] = [
-      {
-        id: "ie1",
-        label: "Salary",
-        amount: 5000,
-        incomeSourceId: "src1",
-        schedule: { type: "recurring", daysOfMonth: [15] },
-      },
-    ];
-    const expenses: ExpenseEvent[] = [
-      {
-        id: "ee1",
-        label: "Rent",
-        amount: 2000,
-        schedule: { type: "recurring", daysOfMonth: [1] },
-      },
-    ];
-    const months: MonthSlot[] = [monthSlot(2024, 1)];
-    const result = buildYearlySummaryData(
-      income,
-      expenses,
-      months,
-      {},
-      incomeSources,
-    );
-    expect(result.incomeRows[0].sublabel).toBe("Employer Inc");
-    expect(result.expenseRows[0].sublabel).toBeUndefined();
   });
 
   it("filters recurring events by startDate and endDate", () => {

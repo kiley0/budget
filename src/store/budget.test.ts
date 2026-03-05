@@ -2,9 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   useBudgetStore,
   replaceBudgetFromExport,
-  addIncomeSource,
   addIncomeEvent,
-  deleteIncomeSource,
   addExpenseEvent,
   deleteIncomeEvent,
   deleteExpenseEvent,
@@ -22,7 +20,6 @@ describe("replaceBudgetFromExport", () => {
     replaceBudgetFromExport(null, testBudgetId);
     const state = useBudgetStore.getState();
     expect(state.budgetId).toBe(testBudgetId);
-    expect(state.incomeSources).toEqual([]);
     expect(state.incomeEvents).toEqual([]);
     expect(state.expenseEvents).toEqual([]);
   });
@@ -31,7 +28,7 @@ describe("replaceBudgetFromExport", () => {
     replaceBudgetFromExport("invalid", testBudgetId);
     const state = useBudgetStore.getState();
     expect(state.budgetId).toBe(testBudgetId);
-    expect(state.incomeSources).toEqual([]);
+    expect(state.incomeEvents).toEqual([]);
   });
 
   it("uses currentBudgetId and ignores imported budgetId", () => {
@@ -40,7 +37,6 @@ describe("replaceBudgetFromExport", () => {
         budgetId: "other-id",
         version: 1,
         updatedAt: "2020-01-01",
-        incomeSources: [],
         incomeEvents: [],
         expenseEvents: [],
       },
@@ -50,7 +46,7 @@ describe("replaceBudgetFromExport", () => {
     expect(state.budgetId).toBe(testBudgetId);
   });
 
-  it("imports income sources and events", () => {
+  it("imports income events (legacy incomeSourceId stripped)", () => {
     const exportData = {
       version: 1,
       updatedAt: "2026-03-01T00:00:00.000Z",
@@ -72,9 +68,6 @@ describe("replaceBudgetFromExport", () => {
     replaceBudgetFromExport(exportData, testBudgetId);
     const state = useBudgetStore.getState();
     expect(state.budgetId).toBe(testBudgetId);
-    expect(state.incomeSources).toHaveLength(1);
-    expect(state.incomeSources[0].name).toBe("Employer");
-    expect(state.incomeSources[0].id).toBe("src-1");
     expect(state.incomeEvents).toHaveLength(1);
     expect(state.incomeEvents[0].label).toBe("Paycheck");
     expect(state.incomeEvents[0].amount).toBe(5000);
@@ -82,13 +75,13 @@ describe("replaceBudgetFromExport", () => {
       type: "one-time",
       date: "2026-03-15",
     });
+    expect("incomeSourceId" in state.incomeEvents[0]).toBe(false);
   });
 
   it("imports expense events (destinations stripped by v3 migration)", () => {
     const exportData = {
       version: 1,
       updatedAt: "2026-03-01T00:00:00.000Z",
-      incomeSources: [],
       incomeEvents: [],
       expenseDestinations: [
         { id: "exp-src-1", name: "Landlord", description: "Rent" },
@@ -120,7 +113,6 @@ describe("replaceBudgetFromExport", () => {
     const exportData = {
       version: 1,
       updatedAt: "2026-03-03T17:47:44.484Z",
-      incomeSources: [],
       incomeEvents: [],
       expenseDestinations: [],
       expenseEvents: [],
@@ -129,7 +121,6 @@ describe("replaceBudgetFromExport", () => {
     const state = useBudgetStore.getState();
     expect(state.budgetId).toBe(testBudgetId);
     expect(state.version).toBe(1);
-    expect(state.incomeSources).toEqual([]);
     expect(state.incomeEvents).toEqual([]);
     expect(state.expenseEvents).toEqual([]);
   });
@@ -142,24 +133,7 @@ describe("orphan cleanup on delete", () => {
     replaceBudgetFromExport(null, testBudgetId);
   });
 
-  it("clears incomeSourceId when deleting income source", () => {
-    addIncomeSource("Job", "");
-    const srcId = useBudgetStore.getState().incomeSources[0].id;
-    addIncomeEvent({
-      label: "Pay",
-      amount: 5000,
-      incomeSourceId: srcId,
-      schedule: { type: "one-time", date: "2026-06-15" },
-    });
-    deleteIncomeSource(srcId);
-    const state = useBudgetStore.getState();
-    expect(state.incomeSources).toHaveLength(0);
-    expect(state.incomeEvents).toHaveLength(1);
-    expect(state.incomeEvents[0].incomeSourceId).toBeUndefined();
-  });
-
   it("prunes actuals when deleting income event", () => {
-    addIncomeSource("Job", "");
     addIncomeEvent({
       label: "Pay",
       amount: 5000,

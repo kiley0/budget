@@ -1,12 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  addIncomeSource,
-  addIncomeEvent,
-  addExpenseEvent,
-} from "@/store/budget";
-import { useBudgetStore } from "@/store/budget";
+import { addIncomeEvent, addExpenseEvent } from "@/store/budget";
 import {
   DAY_OF_MONTH_MAX,
   DAY_OF_MONTH_MIN,
@@ -40,7 +35,7 @@ import {
 import { PaycheckIncomeForm } from "./PaycheckIncomeForm";
 import { StockIncomeForm } from "./StockIncomeForm";
 
-export type OnboardingStep = 1 | 2 | 3 | "done";
+export type OnboardingStep = 1 | 2 | "done";
 
 export interface OnboardingFlowProps {
   open: boolean;
@@ -57,8 +52,6 @@ export function OnboardingFlow({
   onDismiss,
   onStepReset,
 }: OnboardingFlowProps) {
-  const [incomeName, setIncomeName] = useState("");
-  const [incomeDesc, setIncomeDesc] = useState("");
   const [incomeLabel, setIncomeLabel] = useState("");
   const [incomeType, setIncomeType] = useState("paycheck");
   const [incomeAmount, setIncomeAmount] = useState("");
@@ -76,11 +69,7 @@ export function OnboardingFlow({
   const [expenseCategory, setExpenseCategory] = useState("");
   const [expenseDay, setExpenseDay] = useState("1");
 
-  const incomeSources = useBudgetStore((s) => s.incomeSources);
-
   function resetToStep1() {
-    setIncomeName("");
-    setIncomeDesc("");
     setIncomeLabel("");
     setIncomeType("paycheck");
     setIncomeAmount("");
@@ -100,18 +89,8 @@ export function OnboardingFlow({
 
   function handleStep1(e: React.FormEvent) {
     e.preventDefault();
-    const name = incomeName.trim();
-    if (!name) return;
-    addIncomeSource(name, incomeDesc.trim());
-    onStepChange(2);
-  }
-
-  function handleStep2(e: React.FormEvent) {
-    e.preventDefault();
     const label = incomeLabel.trim();
     if (!label) return;
-    const sourceId = incomeSources[0]?.id;
-    if (!sourceId) return;
     const day = parseInt(incomeDay, 10);
     const schedule =
       Number.isNaN(day) || day < DAY_OF_MONTH_MIN || day > DAY_OF_MONTH_MAX
@@ -135,16 +114,15 @@ export function OnboardingFlow({
     addIncomeEvent({
       label,
       amount: parsed.amount,
-      incomeSourceId: sourceId,
       incomeType: incomeType || undefined,
       stockSaleDetails: parsed.stockSaleDetails,
       paycheckDetails: parsed.paycheckDetails,
       schedule,
     });
-    onStepChange(3);
+    onStepChange(2);
   }
 
-  function handleStep3(e: React.FormEvent) {
+  function handleStep2(e: React.FormEvent) {
     e.preventDefault();
     const label = expenseLabel.trim();
     if (!label) return;
@@ -179,20 +157,17 @@ export function OnboardingFlow({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {step === 1 && "Add your first income source"}
-            {step === 2 && "Add your first expected income"}
-            {step === 3 && "Add your first expected expense"}
+            {step === 1 && "Add your first expected income"}
+            {step === 2 && "Add your first expected expense"}
             {step === "done" && "You're all set!"}
           </DialogTitle>
           {step !== "done" && (
-            <p className="text-sm text-muted-foreground">Step {step} of 3</p>
+            <p className="text-sm text-muted-foreground">Step {step} of 2</p>
           )}
           <DialogDescription>
             {step === 1 &&
-              "Income sources are where your money comes from (e.g. employer, freelance client)."}
-            {step === 2 &&
               "Expected income is what you plan to receive and when."}
-            {step === 3 &&
+            {step === 2 &&
               "Expected expenses are what you plan to pay and when."}
             {step === "done" &&
               "You've added your first income and expense. You can manage and add more from the main budget view."}
@@ -200,37 +175,6 @@ export function OnboardingFlow({
         </DialogHeader>
         {step === 1 && (
           <form onSubmit={handleStep1} className="mt-4 space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="onboard-income-name">Name</Label>
-              <Input
-                id="onboard-income-name"
-                value={incomeName}
-                onChange={(e) => setIncomeName(e.target.value)}
-                placeholder="e.g. My Employer"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="onboard-income-desc">
-                Description (optional)
-              </Label>
-              <Input
-                id="onboard-income-desc"
-                value={incomeDesc}
-                onChange={(e) => setIncomeDesc(e.target.value)}
-                placeholder="e.g. Primary job"
-              />
-            </div>
-            <DialogFooter className="gap-2 pt-2 sm:justify-end">
-              <Button type="button" variant="ghost" onClick={handleSkipStep1}>
-                Skip
-              </Button>
-              <Button type="submit">Continue</Button>
-            </DialogFooter>
-          </form>
-        )}
-        {step === 2 && (
-          <form onSubmit={handleStep2} className="mt-4 space-y-3">
             <div className="space-y-2">
               <Label htmlFor="onboard-income-type">Type</Label>
               <Select
@@ -336,15 +280,15 @@ export function OnboardingFlow({
               />
             </div>
             <DialogFooter className="gap-2 pt-2 sm:justify-end">
-              <Button type="button" variant="ghost" onClick={resetToStep1}>
+              <Button type="button" variant="ghost" onClick={handleSkipStep1}>
                 Skip
               </Button>
               <Button type="submit">Continue</Button>
             </DialogFooter>
           </form>
         )}
-        {step === 3 && (
-          <form onSubmit={handleStep3} className="mt-4 space-y-3">
+        {step === 2 && (
+          <form onSubmit={handleStep2} className="mt-4 space-y-3">
             <div className="space-y-2">
               <Label htmlFor="onboard-expense-label">Label</Label>
               <Input

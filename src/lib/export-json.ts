@@ -7,7 +7,6 @@ export interface BudgetExportData {
   version: number;
   updatedAt: string;
   schemaVersion?: number;
-  incomeSources: BudgetState["incomeSources"];
   incomeEvents: BudgetState["incomeEvents"];
   expenseEvents: BudgetState["expenseEvents"];
   metadata?: BudgetMetadata;
@@ -23,7 +22,6 @@ export function buildBudgetExportData(
     version: state.version,
     updatedAt: state.updatedAt,
     schemaVersion: state.schemaVersion ?? 3,
-    incomeSources: state.incomeSources,
     incomeEvents: state.incomeEvents,
     expenseEvents: state.expenseEvents,
   };

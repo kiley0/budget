@@ -10,9 +10,7 @@ describe("serializeBudgetForPersistence", () => {
       budgetId: "test-id",
       updatedAt: "2020-01-01T00:00:00Z",
       version: 1,
-      incomeSources: [],
       incomeEvents: [],
-      expenseDestinations: [],
       expenseEvents: [],
     };
     const result = serializeBudgetForPersistence(state);
@@ -33,15 +31,20 @@ describe("serializeBudgetForPersistence", () => {
     const state = {
       budgetId: "x",
       updatedAt: "old",
-      incomeSources: [{ id: "1", name: "Job", description: "" }],
-      incomeEvents: [],
-      expenseDestinations: [],
+      incomeEvents: [
+        {
+          id: "1",
+          label: "Salary",
+          amount: 5000,
+          schedule: { type: "one-time", date: "2026-01-15" },
+        },
+      ],
       expenseEvents: [],
     };
     const result = serializeBudgetForPersistence(state);
     const parsed = JSON.parse(result);
-    expect(parsed.incomeSources).toHaveLength(1);
-    expect(parsed.incomeSources[0].name).toBe("Job");
+    expect(parsed.incomeEvents).toHaveLength(1);
+    expect(parsed.incomeEvents[0].label).toBe("Salary");
   });
 });
 
@@ -50,8 +53,8 @@ describe("getContentFingerprint", () => {
     const state = {
       budgetId: "x",
       updatedAt: "2020-01-01T00:00:00Z",
-      incomeSources: [],
       incomeEvents: [],
+      expenseEvents: [],
     };
     const fp1 = getContentFingerprint(state);
     const fp2 = getContentFingerprint({
@@ -65,13 +68,20 @@ describe("getContentFingerprint", () => {
     const base = {
       budgetId: "x",
       updatedAt: "old",
-      incomeSources: [],
       incomeEvents: [],
+      expenseEvents: [],
     };
     const fp1 = getContentFingerprint(base);
     const fp2 = getContentFingerprint({
       ...base,
-      incomeSources: [{ id: "1", name: "Job", description: "" }],
+      incomeEvents: [
+        {
+          id: "1",
+          label: "Job",
+          amount: 100,
+          schedule: { type: "one-time", date: "2026-01-01" },
+        },
+      ],
     });
     expect(fp1).not.toBe(fp2);
   });

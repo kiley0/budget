@@ -34,13 +34,6 @@ function generateId(): string {
   return crypto.randomUUID();
 }
 
-export interface IncomeSource {
-  /** UUID */
-  id: string;
-  name: string;
-  description: string;
-}
-
 export type IncomeEventSchedule =
   | { type: "one-time"; date: string }
   | {
@@ -83,7 +76,6 @@ export interface IncomeEvent {
   id: string;
   label: string;
   amount: number;
-  incomeSourceId?: string;
   /** Type of income (e.g. paycheck, dividends). */
   incomeType?: string;
   /** Stock symbol, shares, tax rate. Used when incomeType is stock_sale_proceeds or rsu_vesting. */
@@ -130,7 +122,6 @@ export interface BudgetState {
   budgetId: string;
   version: number;
   updatedAt: string;
-  incomeSources: IncomeSource[];
   incomeEvents: IncomeEvent[];
   expenseEvents: ExpenseEvent[];
   /** Actual income/expenses by month. Key: "YYYY-MM". */
@@ -145,7 +136,6 @@ function getDefaultState(budgetId: string): BudgetState {
     budgetId,
     version: 1,
     updatedAt: new Date().toISOString(),
-    incomeSources: [],
     incomeEvents: [],
     expenseEvents: [],
     actualsByMonth: {},
@@ -171,35 +161,6 @@ export function replaceBudgetFromExport(
   useBudgetStore.setState(state, true);
   // Persist immediately; don't rely on debounced save (user may reload before it fires).
   void saveBudget();
-}
-
-export function addIncomeSource(name: string, description: string): void {
-  useBudgetStore.setState((state) => ({
-    incomeSources: [
-      ...state.incomeSources,
-      { id: generateId(), name, description },
-    ],
-  }));
-}
-
-export function updateIncomeSource(
-  id: string,
-  updates: { name?: string; description?: string },
-): void {
-  useBudgetStore.setState((state) => ({
-    incomeSources: state.incomeSources.map((source) =>
-      source.id === id ? { ...source, ...updates } : source,
-    ),
-  }));
-}
-
-export function deleteIncomeSource(id: string): void {
-  useBudgetStore.setState((state) => ({
-    incomeSources: state.incomeSources.filter((source) => source.id !== id),
-    incomeEvents: state.incomeEvents.map((ev) =>
-      ev.incomeSourceId === id ? { ...ev, incomeSourceId: undefined } : ev,
-    ),
-  }));
 }
 
 export function addExpenseEvent(event: Omit<ExpenseEvent, "id">): void {

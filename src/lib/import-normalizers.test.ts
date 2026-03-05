@@ -6,15 +6,14 @@ describe("normalizeImportedBudget", () => {
     const fromNull = normalizeImportedBudget(null);
     expect(fromNull.budgetId).toBe("");
     expect(fromNull.version).toBe(1);
-    expect(fromNull.incomeSources).toEqual([]);
     expect(fromNull.incomeEvents).toEqual([]);
     expect(fromNull.expenseEvents).toEqual([]);
 
     expect(normalizeImportedBudget("string").budgetId).toBe("");
-    expect(normalizeImportedBudget(42).incomeSources).toEqual([]);
+    expect(normalizeImportedBudget(42).incomeEvents).toEqual([]);
   });
 
-  it("normalizes income sources and events with one-time schedule", () => {
+  it("normalizes income events with one-time schedule (strips incomeSourceId)", () => {
     const raw = {
       budgetId: "b1",
       version: 2,
@@ -35,12 +34,6 @@ describe("normalizeImportedBudget", () => {
     expect(result.budgetId).toBe("b1");
     expect(result.version).toBe(2);
     expect(result.updatedAt).toBe("2026-03-01T00:00:00.000Z");
-    expect(result.incomeSources).toHaveLength(1);
-    expect(result.incomeSources[0]).toEqual({
-      id: "src-1",
-      name: "Employer",
-      description: "Job",
-    });
     expect(result.incomeEvents).toHaveLength(1);
     expect(result.incomeEvents[0].label).toBe("Paycheck");
     expect(result.incomeEvents[0].amount).toBe(5000);
@@ -48,6 +41,7 @@ describe("normalizeImportedBudget", () => {
       type: "one-time",
       date: "2026-03-15",
     });
+    expect("incomeSourceId" in result.incomeEvents[0]).toBe(false);
   });
 
   it("normalizes recurring schedule with dayOfMonth and snake_case day_of_month", () => {
@@ -55,7 +49,6 @@ describe("normalizeImportedBudget", () => {
       budgetId: "",
       version: 1,
       updatedAt: "2026-01-01",
-      incomeSources: [],
       incomeEvents: [
         {
           id: "e1",
@@ -78,7 +71,6 @@ describe("normalizeImportedBudget", () => {
       budgetId: "",
       version: 1,
       updatedAt: "2026-01-01",
-      incomeSources: [],
       incomeEvents: [
         {
           id: "e1",
@@ -108,7 +100,6 @@ describe("normalizeImportedBudget", () => {
       budgetId: "",
       version: 1,
       updatedAt: "2026-01-01",
-      incomeSources: [],
       incomeEvents: [
         {
           id: "e1",
@@ -142,7 +133,6 @@ describe("normalizeImportedBudget", () => {
       budgetId: "",
       version: 1,
       updatedAt: "2026-01-01",
-      incomeSources: [],
       incomeEvents: [
         {
           id: "valid",
@@ -188,7 +178,6 @@ describe("normalizeImportedBudget", () => {
       budgetId: "",
       version: 1,
       updatedAt: "2026-01-01",
-      incomeSources: [],
       incomeEvents: [],
       expenseDestinations: [{ id: "es-1", name: "Landlord", description: "" }],
       expenseEvents: [
@@ -217,7 +206,6 @@ describe("normalizeImportedBudget", () => {
     const raw = {
       budgetId: "x",
       version: 0,
-      incomeSources: [],
       incomeEvents: [],
       expenseEvents: [],
     };

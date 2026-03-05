@@ -16,7 +16,7 @@ The fastest way to forecast your income and expenses. Quickly create a budget fo
 1. **Get started** — You land on the get-started page. Create a new passphrase (8+ chars) or enter an existing one to unlock a budget.
 2. **Key derivation** — The app derives an encryption key from your passphrase (PBKDF2 + salt in localStorage). The key lives in memory (Zustand session store) and in sessionStorage (so you don't re-enter the passphrase on tab reload). The key is never sent to the server.
 3. **First budget** — On first use, the app generates a UUID (`budgetId`) and stores it in the URL (`/budget/[budgetId]`). `budgetId` is also saved in localStorage so `/budget` can redirect to your budget. Share the link to collaborate.
-4. **Empty state** — A new budget starts with no income sources or expenses. You add them from the budget page.
+4. **Empty state** — A new budget starts with no income or expense events. You add them from the budget page.
 
 ### Saving (persistence order)
 
@@ -41,7 +41,7 @@ While the budget page is open and the tab is active, the app polls for newer ver
 
 ### Flow
 
-Home → Get started (create/enter passphrase) → Budget page. From there you manage income sources, expense destinations, and events; import/export JSON; and view monthly P&L and yearly summary. Logout clears the in-memory key and session data, then returns to home.
+Home → Get started (create/enter passphrase) → Budget page. From there you manage income and expense events; import/export JSON; and view monthly P&L and yearly summary. Logout clears the in-memory key and session data, then returns to home.
 
 ## Getting started
 
@@ -87,17 +87,17 @@ Run Sunrise Budget locally:
 
 All app code lives under **`src/`**.
 
-| What                   | Where                                                                                                                                                      |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Routes**             | `src/app/` — `page.tsx` (home), `get-started/page.tsx`, `budget/page.tsx` (redirect), `budget/[budgetId]/page.tsx` (main budget UI).                       |
-| **API**                | `src/app/api/sync/` — GET (blob or metadata with `?meta=1`) and POST (save blob + metadata) for Vercel Blob. `api/stock-price/` for live stock quotes.     |
-| **State**              | `src/store/` — `budget.ts` (Zustand budget state, load/save, CRUD, sync), `session.ts` (in-memory key, unlock state).                                      |
-| **Persistence**        | `src/lib/budget-persistence/` — Orchestrates save order (session → local → sync). Testable adapters.                                                       |
-| **Crypto**             | `src/lib/crypto.ts` — key derivation, encrypt/decrypt, verify passphrase.                                                                                  |
-| **Constants & config** | `src/lib/constants.ts` — storage key prefixes, expense categories, labels.                                                                                 |
-| **Budget UI**          | `src/components/budget/` — header (export/import/logout), yearly summary, monthly P&L, dialogs for adding sources/destinations.                            |
-| **Hooks**              | `src/hooks/` — `useBudgetMonthData`, `useBudgetSourceNames`, `useBudgetHotkeys`, `useStockPriceFetch`, `useSyncVersionPolling` (polls for newer versions). |
-| **Utilities**          | `src/lib/` — `schedule-format.ts` (dates, ordinals), `schedule-builders.ts` (form → schedule), `import-normalizers.ts` (JSON → BudgetState).               |
+| What                   | Where                                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Routes**             | `src/app/` — `page.tsx` (home), `get-started/page.tsx`, `budget/page.tsx` (redirect), `budget/[budgetId]/page.tsx` (main budget UI).                   |
+| **API**                | `src/app/api/sync/` — GET (blob or metadata with `?meta=1`) and POST (save blob + metadata) for Vercel Blob. `api/stock-price/` for live stock quotes. |
+| **State**              | `src/store/` — `budget.ts` (Zustand budget state, load/save, CRUD, sync), `session.ts` (in-memory key, unlock state).                                  |
+| **Persistence**        | `src/lib/budget-persistence/` — Orchestrates save order (session → local → sync). Testable adapters.                                                   |
+| **Crypto**             | `src/lib/crypto.ts` — key derivation, encrypt/decrypt, verify passphrase.                                                                              |
+| **Constants & config** | `src/lib/constants.ts` — storage key prefixes, expense categories, labels.                                                                             |
+| **Budget UI**          | `src/components/budget/` — header (export/import/logout), yearly summary, monthly P&L, dialogs for adding income and expense events.                   |
+| **Hooks**              | `src/hooks/` — `useBudgetMonthData`, `useBudgetHotkeys`, `useStockPriceFetch`, `useSyncVersionPolling` (polls for newer versions).                     |
+| **Utilities**          | `src/lib/` — `schedule-format.ts` (dates, ordinals), `schedule-builders.ts` (form → schedule), `import-normalizers.ts` (JSON → BudgetState).           |
 
 More detail on conventions and adding features: **[src/README.md](src/README.md)**.
 

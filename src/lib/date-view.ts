@@ -11,6 +11,17 @@ export interface MonthSlot {
   monthIndex: number; // 0–11
 }
 
+/** Today's date as YYYY-MM-DD (ISO local date). */
+export function getTodayIsoDate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** First day of month for a slot as YYYY-MM-DD. */
+export function slotToIsoDate(slot: MonthSlot): string {
+  return `${slot.year}-${String(slot.monthIndex + 1).padStart(2, "0")}-01`;
+}
+
 const now = new Date();
 const currentYear = now.getFullYear();
 const currentMonthIndex = now.getMonth();
@@ -35,6 +46,14 @@ export function getMonthsForViewMode(mode: DateViewMode): MonthSlot[] {
     const year = Math.floor(totalMonths / 12);
     const monthIndex = totalMonths % 12;
     return { year, monthIndex };
+  });
+}
+
+/** Human-readable label for a single month (e.g. "January 2026"). */
+export function formatMonthLabel(slot: MonthSlot): string {
+  return new Date(slot.year, slot.monthIndex, 1).toLocaleString(undefined, {
+    month: "long",
+    year: "numeric",
   });
 }
 

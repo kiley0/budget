@@ -7,9 +7,7 @@ function emptyState(): BudgetState {
     budgetId: "test-id",
     version: 1,
     updatedAt: new Date().toISOString(),
-    incomeSources: [],
     incomeEvents: [],
-    expenseDestinations: [],
     expenseEvents: [],
   };
 }
@@ -27,13 +25,11 @@ describe("budgetStateToCsv", () => {
   it("includes one row for one-time income event in the given year", () => {
     const state: BudgetState = {
       ...emptyState(),
-      incomeSources: [{ id: "src-1", name: "Employer", description: "Job" }],
       incomeEvents: [
         {
           id: "ev-1",
           label: "Bonus",
           amount: 500,
-          incomeSourceId: "src-1",
           schedule: { type: "one-time", date: "2026-03-15" },
         },
       ],
@@ -41,7 +37,7 @@ describe("budgetStateToCsv", () => {
     const csv = budgetStateToCsv(state, year);
     const lines = csv.split("\n");
     expect(lines[0]).toBe("Date,Income,Expense,Name,Source,Type");
-    expect(lines[1]).toBe("2026-03-15,500,,Bonus,Employer,–");
+    expect(lines[1]).toBe("2026-03-15,500,,Bonus,,–");
     expect(lines.length).toBe(2);
   });
 
@@ -66,13 +62,11 @@ describe("budgetStateToCsv", () => {
   it("includes 12 rows for recurring income on the 15th", () => {
     const state: BudgetState = {
       ...emptyState(),
-      incomeSources: [{ id: "s1", name: "Salary", description: "" }],
       incomeEvents: [
         {
           id: "e1",
           label: "Paycheck",
           amount: 3000,
-          incomeSourceId: "s1",
           schedule: { type: "recurring", daysOfMonth: [15] },
         },
       ],
@@ -81,8 +75,8 @@ describe("budgetStateToCsv", () => {
     const lines = csv.split("\n");
     expect(lines[0]).toBe("Date,Income,Expense,Name,Source,Type");
     expect(lines.length).toBe(13);
-    expect(lines[1]).toBe("2026-01-15,3000,,Paycheck,Salary,–");
-    expect(lines[12]).toBe("2026-12-15,3000,,Paycheck,Salary,–");
+    expect(lines[1]).toBe("2026-01-15,3000,,Paycheck,,–");
+    expect(lines[12]).toBe("2026-12-15,3000,,Paycheck,,–");
   });
 
   it("respects startDate and endDate for recurring event", () => {
@@ -175,20 +169,17 @@ describe("budgetStateToCsv", () => {
   it("escapes fields containing commas and quotes", () => {
     const state: BudgetState = {
       ...emptyState(),
-      incomeSources: [{ id: "s1", name: "Acme, Inc.", description: "" }],
       incomeEvents: [
         {
           id: "e1",
           label: 'Pay "bonus"',
           amount: 500,
-          incomeSourceId: "s1",
           schedule: { type: "one-time", date: "2026-06-01" },
         },
       ],
     };
     const csv = budgetStateToCsv(state, year);
     const lines = csv.split("\n");
-    expect(lines[1]).toContain('"Acme, Inc."');
     expect(lines[1]).toContain('"Pay ""bonus"""');
   });
 });

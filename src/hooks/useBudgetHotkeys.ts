@@ -12,7 +12,6 @@ export interface BudgetHotkeysDialogState {
   yearlySummaryDialogOpen: boolean;
   editIncomeEventDialogOpen?: boolean;
   editExpenseEventDialogOpen?: boolean;
-  addSourceDialogOpen?: boolean;
   newerVersionDialogOpen?: boolean;
   showBlankState?: boolean;
 }
@@ -30,7 +29,6 @@ export interface BudgetHotkeysCallbacks {
 }
 
 export interface BudgetHotkeysDeps {
-  incomeSourcesCount: number;
   dateViewMode: string;
 }
 
@@ -78,7 +76,6 @@ export function useBudgetHotkeys(
         dialogState.yearlySummaryDialogOpen ||
         dialogState.editIncomeEventDialogOpen ||
         dialogState.editExpenseEventDialogOpen ||
-        dialogState.addSourceDialogOpen ||
         dialogState.newerVersionDialogOpen ||
         dialogState.showBlankState;
       if (anyDialogOpen) return;
@@ -97,7 +94,7 @@ export function useBudgetHotkeys(
         e.preventDefault();
         if (mod) {
           callbacksRef.current.setIncomeModalOpen(true);
-        } else if (depsRef.current.incomeSourcesCount > 0) {
+        } else {
           callbacksRef.current.setAddEventDialogOpen(true);
         }
       } else if (key === "e") {
@@ -148,7 +145,6 @@ export function useBudgetHotkeys(
     dialogState.yearlySummaryDialogOpen,
     dialogState.editIncomeEventDialogOpen,
     dialogState.editExpenseEventDialogOpen,
-    dialogState.addSourceDialogOpen,
     dialogState.newerVersionDialogOpen,
     dialogState.showBlankState,
   ]);

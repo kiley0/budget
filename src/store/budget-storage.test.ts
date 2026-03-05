@@ -82,7 +82,14 @@ describe("budget storage", () => {
       useBudgetStore.setState((s) => ({
         ...s,
         budgetId: TEST_BUDGET_ID,
-        incomeSources: [{ id: "src-1", name: "Job", description: "" }],
+        incomeEvents: [
+          {
+            id: "ev-1",
+            label: "Salary",
+            amount: 5000,
+            schedule: { type: "one-time" as const, date: "2026-01-15" },
+          },
+        ],
       }));
       await saveBudget();
       const stored = localStorage.getItem(
@@ -92,8 +99,8 @@ describe("budget storage", () => {
       expect(typeof stored).toBe("string");
       const decrypted = await decrypt(stored!, key);
       const parsed = JSON.parse(decrypted);
-      expect(parsed.incomeSources).toHaveLength(1);
-      expect(parsed.incomeSources[0].name).toBe("Job");
+      expect(parsed.incomeEvents).toHaveLength(1);
+      expect(parsed.incomeEvents[0].label).toBe("Salary");
     });
 
     it("writes decrypted JSON to sessionStorage", async () => {
@@ -134,7 +141,14 @@ describe("budget storage", () => {
       useBudgetStore.setState((s) => ({
         ...s,
         budgetId: TEST_BUDGET_ID,
-        incomeSources: [{ id: "x", name: "Job", description: "" }],
+        incomeEvents: [
+          {
+            id: "x",
+            label: "Job",
+            amount: 100,
+            schedule: { type: "one-time" as const, date: "2026-01-01" },
+          },
+        ],
       }));
       await saveBudget();
       expect(
@@ -156,9 +170,14 @@ describe("budget storage", () => {
         budgetId: TEST_BUDGET_ID,
         version: 1,
         updatedAt: new Date().toISOString(),
-        incomeSources: [{ id: "src-1", name: "Job", description: "" }],
-        incomeEvents: [],
-        expenseDestinations: [],
+        incomeEvents: [
+          {
+            id: "ev-1",
+            label: "Job",
+            amount: 100,
+            schedule: { type: "one-time" as const, date: "2026-01-01" },
+          },
+        ],
         expenseEvents: [],
       };
       useBudgetStore.setState(state);
@@ -195,7 +214,14 @@ describe("budget storage", () => {
       useBudgetStore.setState((s) => ({
         ...s,
         budgetId: TEST_BUDGET_ID,
-        incomeSources: [{ id: "src-1", name: "Job", description: "" }],
+        incomeEvents: [
+          {
+            id: "ev-1",
+            label: "Job",
+            amount: 100,
+            schedule: { type: "one-time" as const, date: "2026-01-01" },
+          },
+        ],
       }));
 
       const fetchMock = vi.mocked(fetch);
@@ -221,17 +247,22 @@ describe("budget storage", () => {
         budgetId: TEST_BUDGET_ID,
         version: 1,
         updatedAt: new Date().toISOString(),
-        incomeSources: [{ id: "fast-src", name: "Fast Job", description: "" }],
-        incomeEvents: [],
-        expenseDestinations: [],
+        incomeEvents: [
+          {
+            id: "ev-1",
+            label: "Fast Job",
+            amount: 5000,
+            schedule: { type: "one-time" as const, date: "2026-01-15" },
+          },
+        ],
         expenseEvents: [],
       });
       sessionStorage.setItem(sessionKey, budgetJson);
       const result = await loadBudget(TEST_BUDGET_ID);
       expect(result).toEqual({ ok: true });
       const state = useBudgetStore.getState();
-      expect(state.incomeSources).toHaveLength(1);
-      expect(state.incomeSources[0].name).toBe("Fast Job");
+      expect(state.incomeEvents).toHaveLength(1);
+      expect(state.incomeEvents[0].label).toBe("Fast Job");
     });
 
     it("loads from localStorage and writes decrypted to sessionStorage", async () => {
@@ -241,11 +272,14 @@ describe("budget storage", () => {
         budgetId: TEST_BUDGET_ID,
         version: 1,
         updatedAt: new Date().toISOString(),
-        incomeSources: [
-          { id: "local-src", name: "Local Job", description: "" },
+        incomeEvents: [
+          {
+            id: "ev-1",
+            label: "Local Job",
+            amount: 5000,
+            schedule: { type: "one-time" as const, date: "2026-01-15" },
+          },
         ],
-        incomeEvents: [],
-        expenseDestinations: [],
         expenseEvents: [],
       });
       const encrypted = await encrypt(budgetJson, key);
@@ -256,7 +290,7 @@ describe("budget storage", () => {
       const result = await loadBudget(TEST_BUDGET_ID);
       expect(result).toEqual({ ok: true });
       const state = useBudgetStore.getState();
-      expect(state.incomeSources[0].name).toBe("Local Job");
+      expect(state.incomeEvents[0].label).toBe("Local Job");
       expect(
         sessionStorage.getItem(
           `${SESSION_DECRYPTED_KEY_PREFIX}${TEST_BUDGET_ID}`,
@@ -276,7 +310,7 @@ describe("budget storage", () => {
       expect(sessionStorage.getItem(sessionKey)).toBeNull();
       const state = useBudgetStore.getState();
       expect(state.budgetId).toBe(TEST_BUDGET_ID);
-      expect(state.incomeSources).toEqual([]);
+      expect(state.incomeEvents).toEqual([]);
     });
 
     it("returns no_key when key is not available", async () => {
@@ -296,9 +330,14 @@ describe("budget storage", () => {
         budgetId: TEST_BUDGET_ID,
         version: 1,
         updatedAt: sessionTime,
-        incomeSources: [{ id: "src", name: "Job", description: "" }],
-        incomeEvents: [],
-        expenseDestinations: [],
+        incomeEvents: [
+          {
+            id: "ev-1",
+            label: "Job",
+            amount: 5000,
+            schedule: { type: "one-time" as const, date: "2026-01-15" },
+          },
+        ],
         expenseEvents: [],
       });
       sessionStorage.setItem(sessionKey, budgetJson);
@@ -322,7 +361,7 @@ describe("budget storage", () => {
       const result = await loadBudget(TEST_BUDGET_ID);
       expect(result).toEqual({ ok: true, newerVersionAvailable: true });
       const state = useBudgetStore.getState();
-      expect(state.incomeSources[0].name).toBe("Job");
+      expect(state.incomeEvents[0].label).toBe("Job");
     });
 
     it("does not return newerVersionAvailable when cooldown is active", async () => {
@@ -335,9 +374,7 @@ describe("budget storage", () => {
         budgetId: TEST_BUDGET_ID,
         version: 1,
         updatedAt: "2025-01-01T00:00:00Z",
-        incomeSources: [],
         incomeEvents: [],
-        expenseDestinations: [],
         expenseEvents: [],
       });
       sessionStorage.setItem(sessionKey, budgetJson);
@@ -366,9 +403,7 @@ describe("budget storage", () => {
         budgetId: TEST_BUDGET_ID,
         version: 1,
         updatedAt: new Date().toISOString(),
-        incomeSources: [],
         incomeEvents: [],
-        expenseDestinations: [],
         expenseEvents: [],
       });
       localStorage.setItem(
@@ -397,11 +432,14 @@ describe("budget storage", () => {
         budgetId: TEST_BUDGET_ID,
         version: 1,
         updatedAt: new Date().toISOString(),
-        incomeSources: [
-          { id: "remote-src", name: "Remote Job", description: "" },
+        incomeEvents: [
+          {
+            id: "ev-1",
+            label: "Remote Job",
+            amount: 5000,
+            schedule: { type: "one-time" as const, date: "2026-01-15" },
+          },
         ],
-        incomeEvents: [],
-        expenseDestinations: [],
         expenseEvents: [],
       });
       const encrypted = await encrypt(budgetJson, key);
@@ -424,8 +462,8 @@ describe("budget storage", () => {
       );
       expect(result).toEqual({ ok: true });
       const state = useBudgetStore.getState();
-      expect(state.incomeSources).toHaveLength(1);
-      expect(state.incomeSources[0].name).toBe("Remote Job");
+      expect(state.incomeEvents).toHaveLength(1);
+      expect(state.incomeEvents[0].label).toBe("Remote Job");
       expect(
         localStorage.getItem(
           `${ENCRYPTED_STORAGE_KEY_PREFIX}${TEST_BUDGET_ID}`,
@@ -446,11 +484,14 @@ describe("budget storage", () => {
         budgetId: TEST_BUDGET_ID,
         version: 1,
         updatedAt: new Date().toISOString(),
-        incomeSources: [
-          { id: "remote-src", name: "Remote Job", description: "" },
+        incomeEvents: [
+          {
+            id: "ev-1",
+            label: "Remote Job",
+            amount: 5000,
+            schedule: { type: "one-time" as const, date: "2026-01-15" },
+          },
         ],
-        incomeEvents: [],
-        expenseDestinations: [],
         expenseEvents: [],
       });
       const encrypted = await encrypt(budgetJson, key);

@@ -9,7 +9,6 @@ function emptyState(budgetId = "test-id"): BudgetState {
     budgetId,
     version: 1,
     updatedAt: new Date().toISOString(),
-    incomeSources: [],
     incomeEvents: [],
     expenseEvents: [],
   };
@@ -22,10 +21,8 @@ describe("buildBudgetExportData", () => {
     expect(data).toHaveProperty("budgetId");
     expect(data).toHaveProperty("version");
     expect(data).toHaveProperty("updatedAt");
-    expect(data).toHaveProperty("incomeSources");
     expect(data).toHaveProperty("incomeEvents");
     expect(data).toHaveProperty("expenseEvents");
-    expect(Array.isArray(data.incomeSources)).toBe(true);
     expect(Array.isArray(data.incomeEvents)).toBe(true);
     expect(Array.isArray(data.expenseEvents)).toBe(true);
   });
@@ -35,25 +32,20 @@ describe("buildBudgetExportData", () => {
       ...emptyState("my-budget"),
       version: 2,
       updatedAt: "2026-01-15T12:00:00.000Z",
-      incomeSources: [{ id: "s1", name: "Employer", description: "Job" }],
       incomeEvents: [
         {
           id: "e1",
           label: "Salary",
           amount: 5000,
-          incomeSourceId: "s1",
           schedule: { type: "recurring", daysOfMonth: [15] },
         },
       ],
-      expenseDestinations: [],
       expenseEvents: [],
     };
     const data = buildBudgetExportData(state);
     expect(data.budgetId).toBe("my-budget");
     expect(data.version).toBe(2);
     expect(data.updatedAt).toBe("2026-01-15T12:00:00.000Z");
-    expect(data.incomeSources).toHaveLength(1);
-    expect(data.incomeSources[0].name).toBe("Employer");
     expect(data.incomeEvents).toHaveLength(1);
     expect(data.incomeEvents[0].amount).toBe(5000);
     expect(data.incomeEvents[0].schedule).toEqual({
@@ -107,7 +99,6 @@ describe("buildBudgetExportData round-trip with replaceBudgetFromExport", () => 
     replaceBudgetFromExport(data, testBudgetId);
     const after = useBudgetStore.getState();
     expect(after.budgetId).toBe(testBudgetId);
-    expect(after.incomeSources).toEqual([]);
     expect(after.incomeEvents).toEqual([]);
     expect(after.expenseEvents).toEqual([]);
   });
@@ -115,13 +106,11 @@ describe("buildBudgetExportData round-trip with replaceBudgetFromExport", () => 
   it("round-trips state with income and expense events", () => {
     const state: BudgetState = {
       ...emptyState(testBudgetId),
-      incomeSources: [{ id: "is1", name: "Employer", description: "Main job" }],
       incomeEvents: [
         {
           id: "ie1",
           label: "Paycheck",
           amount: 4000,
-          incomeSourceId: "is1",
           schedule: { type: "one-time", date: "2026-06-15" },
         },
       ],
@@ -139,9 +128,6 @@ describe("buildBudgetExportData round-trip with replaceBudgetFromExport", () => 
     replaceBudgetFromExport(data, testBudgetId);
     const after = useBudgetStore.getState();
     expect(after.budgetId).toBe(testBudgetId);
-    expect(after.incomeSources).toHaveLength(1);
-    expect(after.incomeSources[0].id).toBe("is1");
-    expect(after.incomeSources[0].name).toBe("Employer");
     expect(after.incomeEvents).toHaveLength(1);
     expect(after.incomeEvents[0].label).toBe("Paycheck");
     expect(after.incomeEvents[0].amount).toBe(4000);
@@ -161,7 +147,6 @@ describe("buildBudgetExportData round-trip with replaceBudgetFromExport", () => 
   it("round-trips recurring schedule with startDate and endDate", () => {
     const state: BudgetState = {
       ...emptyState(testBudgetId),
-      incomeSources: [],
       incomeEvents: [
         {
           id: "e1",

@@ -54,7 +54,6 @@ const emptyDialogState = {
 };
 
 const defaultDeps = {
-  incomeSourcesCount: 1,
   dateViewMode: "next-12-months",
 };
 
@@ -125,26 +124,15 @@ describe("useBudgetHotkeys", () => {
     expect(callbacks.setYearlySummaryDialogOpen).toHaveBeenCalledWith(true);
   });
 
-  it("opens add income dialog on I when income sources exist", () => {
+  it("opens add income dialog on I", () => {
     const callbacks = createMockCallbacks();
-    render(<TestHost callbacks={callbacks} deps={{ incomeSourcesCount: 3 }} />);
+    render(<TestHost callbacks={callbacks} />);
 
     act(() => {
       fireKeyDown({ key: "i" });
     });
 
     expect(callbacks.setAddEventDialogOpen).toHaveBeenCalledWith(true);
-  });
-
-  it("does not open add income dialog on I when no income sources", () => {
-    const callbacks = createMockCallbacks();
-    render(<TestHost callbacks={callbacks} deps={{ incomeSourcesCount: 0 }} />);
-
-    act(() => {
-      fireKeyDown({ key: "i" });
-    });
-
-    expect(callbacks.setAddEventDialogOpen).not.toHaveBeenCalled();
   });
 
   it("opens income modal on Cmd+I", () => {

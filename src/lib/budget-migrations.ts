@@ -1,7 +1,6 @@
 import { DAY_OF_MONTH_MIN, DAY_OF_MONTH_MAX } from "@/lib/constants";
 import type {
   BudgetState,
-  IncomeSource,
   IncomeEvent,
   ExpenseEvent,
   ExpenseEventSchedule,
@@ -15,7 +14,7 @@ import type {
  * Schema version for budget data. Increment when making breaking changes.
  * Used for self-healing: old budgets are migrated to current schema on load/import.
  */
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;
 
 /** Infer schema version from raw data shape (for data without explicit schemaVersion). */
 function inferSchemaVersion(o: Record<string, unknown>): number {
@@ -98,20 +97,6 @@ function parseExpenseSchedule(s: unknown): ExpenseEventSchedule {
   return parseSchedule(s) as ExpenseEventSchedule;
 }
 
-/** Parse income sources from array. */
-function parseIncomeSources(arr: unknown[]): IncomeSource[] {
-  return arr.map((item: unknown) => {
-    if (!item || typeof item !== "object")
-      return { id: generateId(), name: "", description: "" };
-    const x = item as Record<string, unknown>;
-    return {
-      id: typeof x.id === "string" && x.id ? x.id : generateId(),
-      name: String(x.name ?? ""),
-      description: String(x.description ?? ""),
-    };
-  });
-}
-
 /** Parse stock sale details. */
 function parseStockSaleDetails(d: unknown): StockSaleDetails | undefined {
   if (!d || typeof d !== "object") return undefined;
@@ -178,8 +163,6 @@ function parseIncomeEvents(arr: unknown[]): IncomeEvent[] {
       id: typeof x.id === "string" && x.id ? x.id : generateId(),
       label: String(x.label ?? x.name ?? ""),
       amount: Number.isNaN(amount) || amount < 0 ? 0 : amount,
-      incomeSourceId:
-        typeof x.incomeSourceId === "string" ? x.incomeSourceId : undefined,
       incomeType: typeof x.incomeType === "string" ? x.incomeType : undefined,
       stockSaleDetails: parseStockSaleDetails(x.stockSaleDetails),
       paycheckDetails: parsePaycheckDetails(x.paycheckDetails),
@@ -339,6 +322,25 @@ function migrate3To4(data: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
+ * Migration v4 → v5: remove income sources. Drop incomeSources and incomeSourceId.
+ */
+function migrate4To5(data: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...data };
+  delete out.incomeSources;
+  if (Array.isArray(out.incomeEvents)) {
+    out.incomeEvents = (out.incomeEvents as Record<string, unknown>[]).map(
+      (e) => {
+        const ev = { ...e };
+        delete ev.incomeSourceId;
+        return ev;
+      },
+    );
+  }
+  out.schemaVersion = 5;
+  return out;
+}
+
+/**
  * Migrate raw budget data to current schema. Preserves all data.
  * Call this for both import (JSON) and load (decrypted storage).
  */
@@ -350,7 +352,6 @@ export function migrateBudget(
     budgetId: currentBudgetId,
     version: 1,
     updatedAt: new Date().toISOString(),
-    incomeSources: [],
     incomeEvents: [],
     expenseEvents: [],
     actualsByMonth: {},
@@ -373,14 +374,14 @@ export function migrateBudget(
     } else if (schemaVersion === 3) {
       o = migrate3To4(o) as Record<string, unknown>;
       schemaVersion = 4;
+    } else if (schemaVersion === 4) {
+      o = migrate4To5(o) as Record<string, unknown>;
+      schemaVersion = 5;
     } else {
       break;
     }
   }
 
-  const incomeSources = Array.isArray(o.incomeSources)
-    ? parseIncomeSources(o.incomeSources)
-    : [];
   const incomeEvents = Array.isArray(o.incomeEvents)
     ? parseIncomeEvents(o.incomeEvents)
     : [];
@@ -395,7 +396,6 @@ export function migrateBudget(
     version: typeof o.version === "number" && o.version >= 1 ? o.version : 1,
     updatedAt:
       typeof o.updatedAt === "string" ? o.updatedAt : new Date().toISOString(),
-    incomeSources,
     incomeEvents,
     expenseEvents,
     actualsByMonth:

@@ -1,4 +1,4 @@
-import { parseCurrency, formatCurrency } from "./format";
+import { parseCurrency, formatCurrency, getAmountVariant } from "./format";
 
 describe("parseCurrency", () => {
   it("parses plain numbers", () => {
@@ -36,5 +36,17 @@ describe("formatCurrency", () => {
   it("formats zero", () => {
     expect(formatCurrency(0)).toBeDefined();
     expect(formatCurrency(0).length).toBeGreaterThan(0);
+  });
+});
+
+describe("getAmountVariant", () => {
+  it("returns positive for zero and positive amounts", () => {
+    expect(getAmountVariant(0)).toBe("positive");
+    expect(getAmountVariant(100)).toBe("positive");
+  });
+
+  it("returns negative for negative amounts", () => {
+    expect(getAmountVariant(-1)).toBe("negative");
+    expect(getAmountVariant(-100)).toBe("negative");
   });
 });

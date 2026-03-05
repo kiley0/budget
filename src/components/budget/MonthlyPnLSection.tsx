@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useBudgetMonthData } from "@/hooks/useBudgetMonthData";
-import { useBudgetSourceNames } from "@/hooks/useBudgetSourceNames";
 import { formatCurrency, parseCurrency } from "@/lib/format";
 import {
   formatDayForDisplay,
@@ -17,6 +16,7 @@ import {
   type DateViewMode,
   type MonthSlot,
   DATE_VIEW_MODE_LABELS,
+  formatMonthLabel,
 } from "@/lib/date-view";
 import type { IncomeEvent, ExpenseEvent } from "@/store/budget";
 import { getMonthKey, setMonthActuals, useBudgetStore } from "@/store/budget";
@@ -62,13 +62,6 @@ function getExpectedAmountForMonth(event: IncomeEvent | ExpenseEvent): number {
   if (s.type === "recurring" && s.daysOfMonth)
     return event.amount * s.daysOfMonth.length;
   return event.amount;
-}
-
-function formatMonthLabel({ year, monthIndex }: MonthSlot): string {
-  return new Date(year, monthIndex, 1).toLocaleString(undefined, {
-    month: "long",
-    year: "numeric",
-  });
 }
 
 function formatMonthShort({ year, monthIndex }: MonthSlot): string {
@@ -123,7 +116,6 @@ export function MonthlyPnLSection({
   addIncomeDisabled?: boolean;
   addExpenseDisabled?: boolean;
 }) {
-  const { getIncomeSourceName } = useBudgetSourceNames();
   const { getEventsForMonth, getExpenseEventsForMonth } =
     useBudgetMonthData(months);
   const actualsByMonth = useBudgetStore((s) => s.actualsByMonth);
@@ -575,7 +567,6 @@ export function MonthlyPnLSection({
                                               : base;
                                           })()
                                         : null,
-                                      getIncomeSourceName(event.incomeSourceId),
                                     ]
                                       .filter(Boolean)
                                       .join(" · ")}

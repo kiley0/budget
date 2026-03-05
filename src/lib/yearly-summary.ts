@@ -1,4 +1,4 @@
-import type { IncomeEvent, ExpenseEvent, IncomeSource } from "@/store/budget";
+import type { IncomeEvent, ExpenseEvent } from "@/store/budget";
 import type { MonthSlot } from "@/lib/date-view";
 import { getMonthKey } from "@/store/budget";
 import { filterEventsForMonth } from "@/lib/event-month-filter";
@@ -8,14 +8,6 @@ import {
   PAYCHECK_WITHHOLDINGS,
   STOCK_INCOME_TYPES,
 } from "@/lib/constants";
-
-function getIncomeSourceName(
-  sources: IncomeSource[],
-  id: string | undefined,
-): string {
-  if (!id) return "";
-  return sources.find((s) => s.id === id)?.name ?? "";
-}
 
 export interface PaycheckBreakdown {
   grossAmount: number;
@@ -67,7 +59,6 @@ export function buildYearlySummaryData(
       actualExpenseByEventId?: Record<string, number>;
     }
   > = {},
-  incomeSources: IncomeSource[] = [],
 ): YearlySummaryData {
   const recurringIncomeMap = new Map<
     string,
@@ -116,8 +107,6 @@ export function buildYearlySummaryData(
           : e.schedule.type === "recurring"
             ? e.amount * e.schedule.daysOfMonth.length
             : e.amount;
-      const sublabel =
-        getIncomeSourceName(incomeSources, e.incomeSourceId) || undefined;
       if (e.schedule.type === "recurring") {
         const existing = recurringIncomeMap.get(e.id);
         if (existing) {
@@ -125,14 +114,12 @@ export function buildYearlySummaryData(
         } else {
           recurringIncomeMap.set(e.id, {
             label: e.label,
-            sublabel,
             sum: amount,
           });
         }
       } else {
         const row: YearlySummaryRow = {
           label: e.label,
-          sublabel,
           date: e.schedule.date.slice(0, 10),
           amount,
           isRecurring: false,

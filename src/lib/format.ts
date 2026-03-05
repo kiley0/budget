@@ -10,3 +10,8 @@ export function formatCurrency(n: number): string {
     currency: "USD",
   }).format(n);
 }
+
+/** Returns "positive" (emerald) or "negative" (destructive) for amount display. */
+export function getAmountVariant(amount: number): "positive" | "negative" {
+  return amount >= 0 ? "positive" : "negative";
+}

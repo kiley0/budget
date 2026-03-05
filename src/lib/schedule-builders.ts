@@ -1,6 +1,15 @@
 import type { IncomeEventSchedule, ExpenseEventSchedule } from "@/store/budget";
 import { DAY_OF_MONTH_MIN, DAY_OF_MONTH_MAX } from "@/lib/constants";
 
+/** Default recurring date range for current year (YYYY-MM format). */
+export function getDefaultRecurringYearRange(): { jan: string; dec: string } {
+  const year = new Date().getFullYear();
+  return {
+    jan: `${year}-01`,
+    dec: `${year}-12`,
+  };
+}
+
 /** Shared schedule shape used by both income and expense events. */
 type EventSchedule =
   | { type: "one-time"; date: string }
