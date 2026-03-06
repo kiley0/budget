@@ -15,3 +15,30 @@ export function formatCurrency(n: number): string {
 export function getAmountVariant(amount: number): "positive" | "negative" {
   return amount >= 0 ? "positive" : "negative";
 }
+
+/** Fallback display name for a budget when metadata name is missing. */
+export function budgetDisplayName(budgetId: string): string {
+  return budgetId.length >= 8
+    ? `Budget ${budgetId.slice(0, 8)}…`
+    : `Budget ${budgetId}`;
+}
+
+/** Format an ISO date string for display (e.g. "Mar 4, 2026"). Returns "" if invalid. */
+export function formatMetaDate(iso: string | undefined): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
+
+/** "Last opened Mar 4, 2026" from lastAccessed ISO string, or "" if missing. */
+export function formatLastOpened(lastAccessed: string | undefined): string {
+  const last = formatMetaDate(lastAccessed);
+  return last ? `Last opened ${last}` : "";
+}

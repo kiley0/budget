@@ -1,4 +1,11 @@
-import { parseCurrency, formatCurrency, getAmountVariant } from "./format";
+import {
+  parseCurrency,
+  formatCurrency,
+  getAmountVariant,
+  budgetDisplayName,
+  formatMetaDate,
+  formatLastOpened,
+} from "./format";
 
 describe("parseCurrency", () => {
   it("parses plain numbers", () => {
@@ -48,5 +55,39 @@ describe("getAmountVariant", () => {
   it("returns negative for negative amounts", () => {
     expect(getAmountVariant(-1)).toBe("negative");
     expect(getAmountVariant(-100)).toBe("negative");
+  });
+});
+
+describe("budgetDisplayName", () => {
+  it("shortens long ids with ellipsis", () => {
+    expect(budgetDisplayName("12345678-abcd")).toContain("12345678");
+    expect(budgetDisplayName("12345678-abcd")).toContain("…");
+  });
+
+  it("keeps short ids as-is", () => {
+    expect(budgetDisplayName("short")).toBe("Budget short");
+  });
+});
+
+describe("formatMetaDate", () => {
+  it("formats valid ISO date", () => {
+    const result = formatMetaDate("2026-03-04");
+    expect(result).toMatch(/Mar|03|4|2026/);
+  });
+
+  it("returns empty string for undefined or invalid", () => {
+    expect(formatMetaDate(undefined)).toBe("");
+    expect(formatMetaDate("")).toBe("");
+  });
+});
+
+describe("formatLastOpened", () => {
+  it("returns 'Last opened' + date when provided", () => {
+    const result = formatLastOpened("2026-03-04");
+    expect(result).toContain("Last opened");
+  });
+
+  it("returns empty string when undefined", () => {
+    expect(formatLastOpened(undefined)).toBe("");
   });
 });

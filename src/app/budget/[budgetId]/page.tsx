@@ -39,6 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 export default function BudgetPage() {
   const params = useParams();
@@ -49,13 +50,7 @@ export default function BudgetPage() {
   const p = useBudgetPage({ budgetId });
 
   if (!p.sessionRestored) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 py-12">
-        <p className="text-muted-foreground" role="status" aria-live="polite">
-          Loading…
-        </p>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!p.isUnlocked) {
@@ -82,22 +77,14 @@ export default function BudgetPage() {
       );
     }
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-muted-foreground" role="status" aria-live="polite">
-          {p.fetchStatus === "not_found" ? "Redirecting…" : "Loading…"}
-        </p>
-      </div>
+      <LoadingScreen
+        message={p.fetchStatus === "not_found" ? "Redirecting…" : "Loading…"}
+      />
     );
   }
 
   if (!p.budgetId) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-muted-foreground" role="status" aria-live="polite">
-          Loading…
-        </p>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
