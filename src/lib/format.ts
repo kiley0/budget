@@ -42,3 +42,9 @@ export function formatLastOpened(lastAccessed: string | undefined): string {
   const last = formatMetaDate(lastAccessed);
   return last ? `Last opened ${last}` : "";
 }
+
+/** Parse ordinal day string to number (e.g. "1st" -> 1, "22nd" -> 22) for sorting. */
+export function parseDayOrdinal(day: string): number {
+  const n = parseInt(day.replace(/\D/g, ""), 10);
+  return Number.isNaN(n) ? 0 : n;
+}

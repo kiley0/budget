@@ -8,22 +8,33 @@ Next.js 16 budget forecasting app. End-to-end encrypted; data stays local or syn
 
 ## Key paths
 
-| Area                 | Path                                              |
-| -------------------- | ------------------------------------------------- |
-| Routes & pages       | `src/app/`                                        |
-| Budget UI components | `src/components/budget/` (export from `index.ts`) |
-| State (Zustand)      | `src/store/budget.ts`, `src/store/session.ts`     |
-| Pure utilities       | `src/lib/` (no React, no store)                   |
-| Hooks                | `src/hooks/`                                      |
-| API routes           | `src/app/api/`                                    |
+| Area               | Path                                              |
+| ------------------ | ------------------------------------------------- |
+| Routes & pages     | `src/app/`                                        |
+| **Features (DDD)** | `src/features/` — budget, landing, session, legal |
+| State              | `src/features/budget/infrastructure/store.ts`, `src/features/session/infrastructure/store.ts` |
+| Pure utilities     | `src/lib/` (no React, no store)                   |
+| Hooks              | `features/*/presentation/hooks/`                   |
+| API routes         | `src/app/api/`                                    |
+
+## Feature structure (DDD)
+
+Features use domain-driven layers. **Dependency direction:** domain ← infrastructure, domain ← presentation.
+
+| Feature     | domain/                                                                                                                  | infrastructure/                                    | presentation/                                               |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- | ----------------------------------------------------------- |
+| **budget**  | types, schedule-format, schedule-builders, date-view, event-form-mappers, yearly-summary, stock-utils, budget-migrations | store, budget-persistence, export/import, download | components, hooks (useBudgetPage, useBudgetMonthData, etc.) |
+| **landing** | example-data.ts                                                                                                          | —                                                  | LandingHero, ExamplePnLCard, etc.                           |
+| **session** | —                                                                                                                        | store.ts                                           | CreatePassphraseCard, UnlockExistingCard                    |
+| **legal**   | —                                                                                                                        | —                                                  | LegalPageLayout, LegalSection                               |
 
 ## Conventions
 
-- **New budget UI** → `components/budget/`, add export to `components/budget/index.ts`
+- **New budget UI** → `features/budget/presentation/`, add export to `index.ts`
 - **Constants, categories, labels** → `lib/constants.ts`
-- **Schedule/date formatting** → `lib/schedule-format.ts`
-- **Form → store model** → `lib/schedule-builders.ts` or new lib module
-- **Shared derived state** → `src/hooks/`
+- **Schedule/date formatting** → `features/budget/domain/schedule-format.ts`
+- **Form → store model** → `features/budget/domain/schedule-builders.ts` or new domain module
+- **Shared derived state** → `features/*/presentation/hooks/`
 - **Tests** → Vitest, co-located `*.test.ts` / `*.test.tsx`
 
 ## Commands

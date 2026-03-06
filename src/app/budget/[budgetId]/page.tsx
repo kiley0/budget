@@ -6,10 +6,10 @@ import {
   setNewerVersionCooldown,
   setPreferences,
 } from "@/lib/constants";
-import { loadRemoteVersionAndApply } from "@/store/budget";
-import { slotToIsoDate } from "@/lib/date-view";
+import { loadRemoteVersionAndApply } from "@/features/budget/infrastructure/store";
+import { slotToIsoDate } from "@/features/budget/domain/date-view";
 import { toggleSetMember } from "@/lib/utils";
-import { useBudgetPage } from "@/hooks/useBudgetPage";
+import { useBudgetPage } from "@/features/budget/presentation/hooks/useBudgetPage";
 import {
   AddExpenseEventDialog,
   AddIncomeEventDialog,
@@ -31,7 +31,7 @@ import {
   NewerVersionAvailableDialog,
   OnboardingFlow,
   YearlySummaryDialogContent,
-} from "@/components/budget";
+} from "@/features/budget/presentation";
 import {
   Dialog,
   DialogContent,

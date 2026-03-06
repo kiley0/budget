@@ -6,7 +6,7 @@ alwaysApply: false
 
 # TypeScript & React Conventions
 
-- Use path alias `@/` for imports (e.g. `@/lib/constants`, `@/components/budget`)
+- Use path alias `@/` for imports (e.g. `@/lib/constants`, `@/features/budget/presentation`)
 - Prefer functional components; extract logic to custom hooks
 - Colocate types with modules; export interfaces/types used elsewhere
 - Use Zod for form validation with react-hook-form + @hookform/resolvers
@@ -14,5 +14,5 @@ alwaysApply: false
 
 ## Store & data flow
 
-- Zustand stores in `src/store/`; avoid importing store in `lib/` (keep lib pure)
-- Budget CRUD and load/save live in `budget.ts`; session/key state in `session.ts`
+- Zustand stores in `src/features/*/infrastructure/store.ts`; avoid importing store in `lib/` (keep lib pure)
+- Budget CRUD and load/save live in `features/budget/infrastructure/store.ts`; session/key state in `features/session/infrastructure/store.ts`

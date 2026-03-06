@@ -5,6 +5,7 @@ import {
   budgetDisplayName,
   formatMetaDate,
   formatLastOpened,
+  parseDayOrdinal,
 } from "./format";
 
 describe("parseCurrency", () => {
@@ -89,5 +90,18 @@ describe("formatLastOpened", () => {
 
   it("returns empty string when undefined", () => {
     expect(formatLastOpened(undefined)).toBe("");
+  });
+});
+
+describe("parseDayOrdinal", () => {
+  it("parses ordinal day strings", () => {
+    expect(parseDayOrdinal("1st")).toBe(1);
+    expect(parseDayOrdinal("22nd")).toBe(22);
+    expect(parseDayOrdinal("15th")).toBe(15);
+  });
+
+  it("returns 0 for invalid input", () => {
+    expect(parseDayOrdinal("")).toBe(0);
+    expect(parseDayOrdinal("abc")).toBe(0);
   });
 });

@@ -7,20 +7,23 @@ alwaysApply: true
 
 Next.js 16 budget app with end-to-end encryption. Tech: React 19, TypeScript, Zustand, Tailwind, shadcn/ui, react-hook-form, Zod, Vitest.
 
-## Structure
+## Structure (DDD)
 
-- `src/app/` — Routes and API
-- `src/components/budget/` — Budget UI; always export new components from `index.ts`
-- `src/store/` — Zustand state (budget.ts, session.ts)
-- `src/lib/` — Pure utilities (no React, no store): crypto, constants, schedule-format, schedule-builders, import-normalizers
-- `src/hooks/` — Derived data and shared UI logic
+- `src/app/` — Routes; pages compose features, no business logic
+- `src/features/` — Feature modules with DDD layers:
+  - **domain/** — Pure business logic (entities, types, pure functions). No React, store, or I/O.
+  - **infrastructure/** — External I/O (store, persistence, export/import).
+  - **presentation/** — UI components and hooks.
+- `src/lib/` — Cross-cutting utilities (crypto, constants, format, utils, debounce). Feature domain logic in `features/*/domain/`
+- `src/hooks/` — Shared hooks (e.g. from shadcn). Feature hooks in `features/*/presentation/hooks/`
+- State — `src/features/budget/infrastructure/store.ts`, `src/features/session/infrastructure/store.ts`
+- `src/components/` — Shared UI only (ui/, theme-provider, ErrorBoundary)
 
 ## Conventions
 
 - New constants/labels → `lib/constants.ts`
-- Schedule formatting → `lib/schedule-format.ts`
-- Form-to-model logic → `lib/schedule-builders.ts` or new lib module
-- New budget UI → `components/budget/` + add to `index.ts`
+- Feature domain logic → `features/<name>/domain/`
+- Feature UI → `features/<name>/presentation/` + export from `index.ts`
 
 ## Security
 

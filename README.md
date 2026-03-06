@@ -85,19 +85,20 @@ Run Sunrise Budget locally:
 
 ## Where to find things
 
-All app code lives under **`src/`**.
+All app code lives under **`src/`**. The app uses **feature-based Domain-Driven Design (DDD)**: each feature in `src/features/` has `domain/` (pure business logic), `infrastructure/` (I/O, store, persistence), and `presentation/` (UI). See [src/README.md](src/README.md) for the full structure.
 
 | What                   | Where                                                                                                                                                  |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Routes**             | `src/app/` — `page.tsx` (home), `get-started/page.tsx`, `budget/page.tsx` (redirect), `budget/[budgetId]/page.tsx` (main budget UI).                   |
+| **Features (DDD)**     | `src/features/` — budget, landing, session, legal. Each has `domain/`, `infrastructure/`, `presentation/` as needed.                                   |
 | **API**                | `src/app/api/sync/` — GET (blob or metadata with `?meta=1`) and POST (save blob + metadata) for Vercel Blob. `api/stock-price/` for live stock quotes. |
-| **State**              | `src/store/` — `budget.ts` (Zustand budget state, load/save, CRUD, sync), `session.ts` (in-memory key, unlock state).                                  |
-| **Persistence**        | `src/lib/budget-persistence/` — Orchestrates save order (session → local → sync). Testable adapters.                                                   |
+| **State**              | `src/features/budget/infrastructure/store.ts`, `src/features/session/infrastructure/store.ts` — Zustand (budget state, load/save, CRUD, sync; session key). |
+| **Persistence**        | `src/features/budget/infrastructure/budget-persistence/` — Serialize, persist; session → local → sync.                                                 |
 | **Crypto**             | `src/lib/crypto.ts` — key derivation, encrypt/decrypt, verify passphrase.                                                                              |
 | **Constants & config** | `src/lib/constants.ts` — storage key prefixes, expense categories, labels.                                                                             |
-| **Budget UI**          | `src/components/budget/` — header (export/import/logout), yearly summary, monthly P&L, dialogs for adding income and expense events.                   |
-| **Hooks**              | `src/hooks/` — `useBudgetMonthData`, `useBudgetHotkeys`, `useStockPriceFetch`, `useSyncVersionPolling` (polls for newer versions).                     |
-| **Utilities**          | `src/lib/` — `schedule-format.ts` (dates, ordinals), `schedule-builders.ts` (form → schedule), `import-normalizers.ts` (JSON → BudgetState).           |
+| **Budget UI**          | `src/features/budget/presentation/` — header, yearly summary, monthly P&L, dialogs.                                                                    |
+| **Hooks**              | `src/features/*/presentation/hooks/` — useBudgetPage, useBudgetMonthData, useGetStartedPage, useBudgetRedirect, etc.                                   |
+| **Utilities**          | `src/lib/` — crypto, constants, format, utils, debounce. Domain logic (schedule-format, etc.) in `features/budget/domain/`.                             |
 
 More detail on conventions and adding features: **[src/README.md](src/README.md)**.
 

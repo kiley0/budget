@@ -1,12 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useGetStartedPage } from "@/hooks/useGetStartedPage";
+import { useGetStartedPage } from "@/features/session";
 import { LoadingScreen } from "@/components/ui/loading-screen";
-import {
-  UnlockExistingCard,
-  CreatePassphraseCard,
-} from "@/components/get-started";
+import { UnlockExistingCard, CreatePassphraseCard } from "@/features/session";
 import { Button } from "@/components/ui/button";
 
 export default function GetStartedPage() {
